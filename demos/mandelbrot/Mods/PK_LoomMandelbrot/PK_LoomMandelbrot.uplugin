@@ -1,0 +1,6 @@
+{
+  "Name": "Loom Mandelbrot",
+  "Description": "A loom demo: zooms into the Mandelbrot set, drawing a few rows into a render target every frame.",
+  "Version": "0.1",
+  "CreatedBy": "pierrekin"
+}

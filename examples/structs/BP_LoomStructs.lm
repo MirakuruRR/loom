@@ -1,0 +1,46 @@
+blueprint BP_LoomStructs : Actor at /Game/Loom/Examples/structs/BP_LoomStructs
+
+var Tri: CanvasUVTri
+var Tris: array<CanvasUVTri>
+var Group: ETickingGroup = ETickingGroup.TG_PostPhysics
+var X: float = 0.0
+var Y: float = 0.0
+var Same: bool = false
+
+fn Fields() {
+    Tri.V1_Pos = Vector2D(X: 5.0, Y: 6.0)
+    X = Tri.V1_Pos.X
+    Y = Tri.V1_Pos.Y
+}
+
+fn Fill() {
+    Tris.Clear()
+    Tris.Add(CanvasUVTri(V0_Pos: Vector2D(X: 7.0, Y: 8.0)))
+}
+
+// Reads the item where it lies: neither name is ever changed here.
+fn Views() {
+    let tri = Tris[0]
+    let pos = tri.V0_Pos
+    X = pos.X
+    Y = pos.Y
+}
+
+// A copy, since it is changed: the array keeps its own item.
+fn Copies() {
+    let tri = Tris[0]
+    tri.V0_Pos = Vector2D(X: 1.0, Y: 2.0)
+    X = tri.V0_Pos.X
+    Y = Tris[0].V0_Pos.X
+}
+
+fn Enums() {
+    SetTickGroup(ETickingGroup.TG_PostUpdateWork)
+    Same = Group == ETickingGroup.TG_PostPhysics && Group != ETickingGroup.TG_PrePhysics
+}
+
+// An array's item is read by reference, and still compares with a value written out.
+fn EnumItems() {
+    let groups: array<ETickingGroup> = [ETickingGroup.TG_PrePhysics, ETickingGroup.TG_PostPhysics]
+    Same = groups[1] == ETickingGroup.TG_PostPhysics && groups[0] != ETickingGroup.TG_PostPhysics
+}

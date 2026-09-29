@@ -1,0 +1,20 @@
+{
+  "blueprint": "/Game/Loom/Examples/delegates/BP_LoomDelegates",
+  "world": true,
+  "cases": [
+    {"name": "a timer set to a function waits for its time", "call": "Start", "set": {"Fired": "0"}, "ticks": 4, "dt": 0.1, "expect": {"Fired": "0"}},
+    {"name": "then fires once", "call": "Start", "set": {"Fired": "0"}, "ticks": 10, "dt": 0.1, "expect": {"Fired": "1"}},
+    {"name": "a delegate through a parameter and a return value", "call": "StartThrough", "set": {"Fired": "0"}, "ticks": 10, "dt": 0.1, "expect": {"Fired": "1"}},
+    {"name": "a delegate passed to an interface's function", "call": "StartDelayed", "set": {"Fired": "0"}, "ticks": 10, "dt": 0.1, "expect": {"Fired": "1"}},
+    {"name": "a delegate returned by an interface's function", "call": "StartChosen", "set": {"Fired": "0"}, "ticks": 10, "dt": 0.1, "expect": {"Fired": "1"}},
+    {"name": "a delegate passed by a dispatcher", "call": "StartLater", "set": {"Fired": "0"}, "ticks": 10, "dt": 0.1, "expect": {"Fired": "1"}},
+    {"name": "a timer set to another object's function", "call": "StartToggle", "ticks": 10, "dt": 0.1},
+    {"name": "which ran it", "call": "Toggled", "expect": {"return": "true"}},
+    {"name": "a function bound twice runs once", "call": "Bind", "set": {"Scores": "0"}, "expect": {"Scores": "1"}},
+    {"name": "unbound, it no longer runs", "call": "Unbind", "set": {"Scores": "0"}, "expect": {"Scores": "0"}},
+    {"name": "unbind_all unbinds everything", "call": "UnbindAll", "set": {"Scores": "0"}, "expect": {"Scores": "3"}},
+    {"name": "a function bound to an engine dispatcher that passes a 32-bit float", "call": "BindHurt", "set": {"Hits": "0", "Damage": "0"}, "expect": {"Hits": "1", "Damage": "2.500000"}},
+    {"name": "unbound from it", "call": "UnbindHurt", "set": {"Hits": "0"}, "expect": {"Hits": "0"}},
+    {"name": "a looping timer fires each time its time comes round", "call": "StartLooping", "set": {"Fired": "0"}, "ticks": 4, "dt": 0.25, "expect": {"Fired": "4"}}
+  ]
+}

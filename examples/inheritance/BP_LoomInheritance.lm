@@ -1,0 +1,15 @@
+blueprint BP_LoomInheritance : BP_LoomInterfaces at /Game/Loom/Examples/inheritance/BP_LoomInheritance
+
+// The parent implements the interface, so this Blueprint does too, and overrides the parent's
+// handler of its function.
+on OnEvaluate(t: float) -> float {
+    return t * 3
+}
+
+fn Evaluated() -> float {
+    return OnEvaluate(2)
+}
+
+fn Inherited() -> bool {
+    return implements(self, DataflowSimulationActor)
+}

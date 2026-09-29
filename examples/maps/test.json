@@ -1,0 +1,8 @@
+{
+  "blueprint": "/Game/Loom/Examples/maps/BP_LoomMaps",
+  "cases": [
+    {"name": "a map and an array walked from their defaults", "call": "Walk", "expect": {"Count": "2", "Total": "7", "Seen": "woodstoneab"}},
+    {"name": "entries added, changed and removed", "call": "Change", "expect": {"Count": "2", "Total": "15", "Seen": "woodironab", "Found": "true"}},
+    {"name": "a soft class loaded", "call": "Load", "expect": {"Loaded": "true", "Seen": "/Script/Engine.Actor"}}
+  ]
+}

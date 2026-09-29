@@ -1,0 +1,7 @@
+blueprint BP_Order : Actor at /Game/Loom/Reorder/BP_Order
+
+var Pick: E_Order = E_Order.B
+
+fn IsB() -> bool {
+    return Pick == E_Order.B
+}

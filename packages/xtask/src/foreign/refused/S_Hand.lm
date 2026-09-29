@@ -1,0 +1,3 @@
+struct S_Hand at /Game/Loom/Foreign/S_Hand {
+    Grip: int
+}

@@ -1,0 +1,1 @@
+../../../../tree-sitter-loom/queries/highlights.scm

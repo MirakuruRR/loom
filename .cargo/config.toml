@@ -1,0 +1,7 @@
+[alias]
+xtask = "run --quiet --package xtask --"
+
+# Windows builds carry the C runtime inside them, so they run on a Windows without the Visual C++
+# Redistributable, as a fresh install is.
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]

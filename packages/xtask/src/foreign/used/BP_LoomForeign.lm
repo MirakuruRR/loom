@@ -1,0 +1,15 @@
+blueprint BP_LoomForeign : Actor at /Game/Loom/Foreign/BP_LoomForeign
+
+// An enum made in the editor starts with no values, so only its type is used.
+var Tool: E_Hand
+var Hand: S_Hand
+
+fn Made() -> bool {
+    let hand = S_Hand(MemberVar_0: true)
+    return hand.MemberVar_0
+}
+
+fn SetInPlace() -> bool {
+    Hand.MemberVar_0 = true
+    return Hand.MemberVar_0
+}

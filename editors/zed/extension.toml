@@ -1,0 +1,22 @@
+id = "loom"
+name = "Loom"
+version = "0.1.0"
+schema_version = 1
+authors = ["Pierre Hugo"]
+description = "Loom language support"
+repository = "https://github.com/pierrekin/loom"
+
+# The grammar is tree-sitter-loom in this repository, at a commit that holds it. Zed clones the
+# repository at that commit and builds the grammar itself. The local checkout is used while the
+# extension is installed as a dev extension; raise rev after committing a change to the grammar.
+# loom's public repository names itself here instead, at the commit before the one holding this.
+[grammars.loom]
+repository = "https://github.com/pierrekin/loom"
+rev = "ade59c5ac7b08a3ddd9b139b3ea9479bd7b7c47e"
+path = "tree-sitter-loom"
+
+# `loom lsp`, from the plugin in the project's Plugins, so that it is always the compiler the
+# project builds with. `lsp.loom.binary.path` in Zed's settings runs another.
+[language_servers.loom]
+name = "loom"
+languages = ["loom"]

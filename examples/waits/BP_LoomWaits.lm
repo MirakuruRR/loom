@@ -1,0 +1,19 @@
+blueprint BP_LoomWaits : Actor at /Game/Loom/Examples/waits/BP_LoomWaits
+
+var Ticks: int = 0
+var Seconds: float = 0.0
+var Waited: int = 0
+
+// Counts each tick, then waits a second and counts it again. A handler that waits is laid out in
+// the event graph, as only there can a Blueprint wait, so its local is a variable of the Blueprint.
+on ReceiveTick(dt: float) {
+    let total = Seconds + dt
+    Ticks = Ticks + 1
+    Seconds = total
+    // A tick longer than a second isn't waited on.
+    if dt > 1.0 {
+        return
+    }
+    KismetSystemLibrary.Delay(1.0)
+    Waited = Waited + 1
+}

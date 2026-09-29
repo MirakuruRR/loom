@@ -1,0 +1,15 @@
+blueprint BP_LoomDefaults : Actor at /Game/Loom/Examples/defaults/BP_LoomDefaults
+
+// Its own defaults for what Actor declares, one of them a field only the Details panel shows.
+default InitialLifeSpan = 5.0
+default Tags = ["pickup", "small"]
+default PrimaryActorTick.bTickEvenWhenPaused = true
+default PrimaryActorTick.TickInterval = 0.5
+
+var Span: float = 0.0
+var Count: int = 0
+
+fn Read() {
+    Span = InitialLifeSpan
+    Count = Tags.Length()
+}

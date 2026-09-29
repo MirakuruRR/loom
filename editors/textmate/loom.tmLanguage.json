@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json.schemastore.org/tmlanguage.json",
+  "name": "Loom",
+  "scopeName": "source.loom",
+  "fileTypes": ["lm"],
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#string" },
+    { "include": "#path" },
+    { "include": "#number" },
+    { "include": "#declaration" },
+    { "include": "#keywords" },
+    { "include": "#control" },
+    { "include": "#types" },
+    { "include": "#constants" },
+    { "include": "#self" },
+    { "include": "#call" },
+    { "include": "#quoted" },
+    { "include": "#operator" },
+    { "include": "#punctuation" }
+  ],
+  "repository": {
+    "comment": {
+      "name": "comment.line.double-slash.loom",
+      "match": "//.*$"
+    },
+    "string": {
+      "name": "string.quoted.double.loom",
+      "begin": "\"",
+      "end": "\"|$",
+      "patterns": [{ "name": "constant.character.escape.loom", "match": "\\\\[n\"\\\\]" }]
+    },
+    "path": {
+      "name": "string.other.path.loom",
+      "match": "/[A-Z][A-Za-z0-9_/.\\-]*"
+    },
+    "number": {
+      "patterns": [
+        { "name": "constant.numeric.hex.loom", "match": "\\b0[xX][0-9A-Fa-f]+\\b" },
+        { "name": "constant.numeric.float.loom", "match": "\\b[0-9]+\\.[0-9]+\\b" },
+        { "name": "constant.numeric.integer.loom", "match": "\\b[0-9]+\\b" }
+      ]
+    },
+    "declaration": {
+      "patterns": [
+        {
+          "match": "^\\s*((?:(?:editable|editor|private|protected|pure|mut)\\s+)*)(blueprint|enum|interface|struct|implements)\\s+((?:[A-Za-z_][A-Za-z0-9_]*|`[^`]+`))",
+          "captures": {
+            "1": { "name": "keyword.other.loom" },
+            "2": { "name": "keyword.other.loom" },
+            "3": { "name": "entity.name.type.loom" }
+          }
+        },
+        {
+          "match": "^\\s*((?:(?:editable|editor|private|protected|pure|mut)\\s+)*)(fn|event|dispatcher)\\s+((?:[A-Za-z_][A-Za-z0-9_]*|`[^`]+`))",
+          "captures": {
+            "1": { "name": "keyword.other.loom" },
+            "2": { "name": "keyword.other.loom" },
+            "3": { "name": "entity.name.function.loom" }
+          }
+        },
+        {
+          "match": "^\\s*(on)\\s+((?:[A-Za-z_][A-Za-z0-9_]*|`[^`]+`))(?:(\\.)((?:[A-Za-z_][A-Za-z0-9_]*|`[^`]+`)))?",
+          "captures": {
+            "1": { "name": "keyword.other.loom" },
+            "2": { "name": "entity.name.function.loom" },
+            "3": { "name": "punctuation.accessor.loom" },
+            "4": { "name": "entity.name.function.loom" }
+          }
+        },
+        {
+          "match": "^\\s*((?:(?:editable|editor|private|protected|pure|mut)\\s+)*)(var|widget|component)\\s+((?:[A-Za-z_][A-Za-z0-9_]*|`[^`]+`))",
+          "captures": {
+            "1": { "name": "keyword.other.loom" },
+            "2": { "name": "keyword.other.loom" },
+            "3": { "name": "variable.other.member.loom" }
+          }
+        }
+      ]
+    },
+    "keywords": {
+      "comment": "Each of these words is a keyword only where the parser expects it, and a name anywhere else.",
+      "patterns": [
+        {
+          "match": "^\\s*((?:(?:editable|editor|private|protected|pure|mut)\\s+)*)(use|category|default)\\b(?=\\s+[A-Za-z_`\"/])",
+          "captures": { "1": { "name": "keyword.other.loom" }, "2": { "name": "keyword.other.loom" } }
+        },
+        { "match": "\\b(at)\\b(?=\\s+(?:/|-?[0-9]))", "captures": { "1": { "name": "keyword.other.loom" } } },
+        {
+          "match": "(?<=[0-9])\\s+(size)\\b(?=\\s+[0-9])",
+          "captures": { "1": { "name": "keyword.other.loom" } }
+        },
+        { "match": "\\b(slot)\\b(?=\\()", "captures": { "1": { "name": "keyword.other.loom" } } },
+        { "match": "\\b(out)\\s+(?=[A-Za-z_`])", "captures": { "1": { "name": "keyword.other.loom" } } },
+        {
+          "match": "(:)\\s*(ref)\\s+(?=[A-Za-z_`/])",
+          "captures": { "1": { "name": "punctuation.separator.loom" }, "2": { "name": "keyword.other.loom" } }
+        },
+        {
+          "match": "\\b(for)\\s+((?:[A-Za-z_][A-Za-z0-9_]*|`[^`]+`))(?:\\s*(,)\\s*((?:[A-Za-z_][A-Za-z0-9_]*|`[^`]+`)))?\\s+(in)\\b",
+          "captures": {
+            "1": { "name": "keyword.control.loom" },
+            "3": { "name": "punctuation.separator.loom" },
+            "5": { "name": "keyword.control.loom" }
+          }
+        }
+      ]
+    },
+    "control": {
+      "name": "keyword.control.loom",
+      "match": "\\b(break|continue|else|for|if|let|match|return|while)\\b"
+    },
+    "types": {
+      "name": "support.type.loom",
+      "match": "\\b(array|bool|class|float|int|int64|map|name|set|soft|string|text)\\b"
+    },
+    "constants": {
+      "name": "constant.language.loom",
+      "match": "\\b(false|none|true)\\b"
+    },
+    "self": {
+      "name": "variable.language.self.loom",
+      "match": "\\b(self|super)\\b"
+    },
+    "call": {
+      "patterns": [
+        { "name": "entity.name.function.call.loom", "match": "\\b[A-Za-z_][A-Za-z0-9_]*(?=\\s*\\()" },
+        { "name": "entity.name.function.call.loom", "match": "`[^`]+`(?=\\s*\\()" }
+      ]
+    },
+    "quoted": {
+      "comment": "A name in backticks, which is never a word of the language.",
+      "name": "variable.other.loom",
+      "match": "`[^`]+`"
+    },
+    "operator": {
+      "name": "keyword.operator.loom",
+      "match": "->|\\.\\.|[-+*/%&|]=|==|!=|<=|>=|&&|\\|\\||[-+*/%<>=!&|]"
+    },
+    "punctuation": {
+      "patterns": [
+        { "name": "punctuation.accessor.loom", "match": "\\." },
+        { "name": "punctuation.separator.loom", "match": "[,:]" }
+      ]
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "blueprint": "/Game/Loom/Examples/structs/BP_LoomStructs",
+  "cases": [
+    {"name": "a struct variable's field set in place", "call": "Fields", "expect": {"X": "5.000000", "Y": "6.000000"}},
+    {"name": "an array of structs filled", "call": "Fill"},
+    {"name": "an item read where it lies", "call": "Views", "expect": {"X": "7.000000", "Y": "8.000000"}},
+    {"name": "an item copied, then changed", "call": "Copies", "expect": {"X": "1.000000", "Y": "7.000000"}},
+    {"name": "enum values given and compared", "call": "Enums", "expect": {"Same": "true"}},
+    {"name": "an enum item compared with a value written out", "call": "EnumItems", "expect": {"Same": "true"}}
+  ]
+}

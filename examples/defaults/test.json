@@ -1,0 +1,7 @@
+{
+  "blueprint": "/Game/Loom/Examples/defaults/BP_LoomDefaults",
+  "cases": [
+    {"name": "inherited properties read back their class defaults", "call": "Read", "expect": {"Span": "5.000000", "Count": "2"}},
+    {"name": "a field only the Details panel shows keeps its default", "call": "Read", "expect": {"PrimaryActorTick": "(bTickEvenWhenPaused=True,bStartWithTickEnabled=True,bAllowTickOnDedicatedServer=True,TickInterval=0.500000)"}}
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "blueprint": "/Game/Loom/Examples/params/BP_LoomParams",
+  "cases": [
+    {"name": "every default taken", "call": "Named", "expect": {"return": "the door!"}},
+    {"name": "the last default taken", "call": "Prefixed", "expect": {"return": "a door!"}},
+    {"name": "no default taken", "call": "Given", "expect": {"return": "a door?"}},
+    {"name": "another Blueprint's defaults taken", "call": "Library", "expect": {"return": "6.500000"}},
+    {"name": "another Blueprint's function, given every argument", "call": "LibraryGiven", "expect": {"return": "3.000000"}}
+  ]
+}

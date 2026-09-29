@@ -1,0 +1,26 @@
+{
+  "version": 0,
+  "ops": [
+    {"op":"blueprint","path":"/Game/Loom/Examples/defaults/BP_LoomDefaults","parent":"/Script/Engine.Actor","source":"examples/defaults/BP_LoomDefaults.lm"},
+    {"op":"variable","name":"Span","type":"float","default":"0"},
+    {"op":"variable","name":"Count","type":"int","default":"0"},
+    {"op":"function","name":"Read"},
+    {"op":"node","graph":"Read","id":"Read/entry","kind":"entry"},
+    {"op":"node","graph":"Read","id":"Read/get1","kind":"get","var":"InitialLifeSpan","scope":"inherited","class":"/Script/Engine.Actor"},
+    {"op":"node","graph":"Read","id":"Read/set2","kind":"set","var":"Span","scope":"self"},
+    {"op":"link","from":"Read/entry.then","to":"Read/set2.execute"},
+    {"op":"link","from":"Read/get1.InitialLifeSpan","to":"Read/set2.Span"},
+    {"op":"node","graph":"Read","id":"Read/get3","kind":"get","var":"Tags","scope":"inherited","class":"/Script/Engine.Actor"},
+    {"op":"node","graph":"Read","id":"Read/pure4","kind":"call","function":"/Script/Engine.KismetArrayLibrary:Array_Length"},
+    {"op":"link","from":"Read/get3.Tags","to":"Read/pure4.TargetArray"},
+    {"op":"node","graph":"Read","id":"Read/set5","kind":"set","var":"Count","scope":"self"},
+    {"op":"link","from":"Read/set2.then","to":"Read/set5.execute"},
+    {"op":"link","from":"Read/pure4.ReturnValue","to":"Read/set5.Count"},
+    {"op":"compile"},
+    {"op":"class_default","name":"InitialLifeSpan","value":"5"},
+    {"op":"class_default","name":"Tags","value":"(\"pickup\",\"small\")"},
+    {"op":"class_default","name":"PrimaryActorTick.bTickEvenWhenPaused","value":"true"},
+    {"op":"class_default","name":"PrimaryActorTick.TickInterval","value":"0.5"},
+    {"op":"save"}
+  ]
+}

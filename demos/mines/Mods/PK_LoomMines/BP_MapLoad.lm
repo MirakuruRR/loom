@@ -1,0 +1,230 @@
+blueprint BP_MapLoad : Actor at /Game/Mods/PK_LoomMines/BP_MapLoad
+
+var Sys: ArcoSystems
+var Target: TextureRenderTarget2D
+var Tris: array<CanvasUVTri>
+var Ready: bool = false
+// The terrain's size in cells.
+var Ex: int = 0
+var Ey: int = 0
+var Ez: int = 0
+// The player: a position in cells on one layer, and the way they face, in radians.
+var Px: float = 0.0
+var Py: float = 0.0
+var Pz: int = 0
+var Angle: float = 0.0
+// The picture, in pixels of the render target.
+var Width: int = 160
+var Height: int = 100
+// Whether each layer key was down last frame.
+var UpWasDown: bool = false
+var DownWasDown: bool = false
+// What the last cast hit.
+var HitSide: int = 0
+var HitSurveyed: bool = false
+// How long each frame spends casting and drawing, in milliseconds, smoothed.
+var FrameMs: float = 0.0
+// Seconds since the mod log last heard how it is doing.
+var Since: float = 0.0
+
+on ReceiveBeginPlay {
+    SetTickableWhenPaused(true)
+    Target = KismetRenderingLibrary.CreateRenderTarget2D(160, 100)
+    let screen = create_widget(WBP_View)
+    screen.AddToViewport(10)
+    screen.View.SetBrushResourceObject(Target)
+}
+
+// A cell's flags: 32 when it is solid, 128 when it has been surveyed. Outside the terrain
+// counts as solid, so a ray always stops.
+fn Flags(x: int, y: int, z: int) -> int {
+    if x < 0 || y < 0 || z < 0 || x >= Ex || y >= Ey || z >= Ez {
+        return 32
+    }
+    return int(Sys.m_terrain.Cells[x + y * Ex + z * Ex * Ey].TypesAndFlags)
+}
+
+fn Solid(x: int, y: int, z: int) -> bool {
+    return Flags(x, y, z) & 32 != 0
+}
+
+// Starts in the first empty layer above the ground in the middle of the map.
+fn Spawn() {
+    Ex = Sys.m_terrain.Extent.X
+    Ey = Sys.m_terrain.Extent.Y
+    Ez = Sys.m_terrain.Extent.Z
+    let cx = Ex / 2
+    let cy = Ey / 2
+    let z = Ez - 1
+    let found = false
+    while z > 0 && !found {
+        if Solid(cx, cy, z) {
+            found = true
+        } else {
+            z = z - 1
+        }
+    }
+    Pz = KismetMathLibrary.Min(z + 1, Ez - 1)
+    Px = float(cx) + 0.5
+    Py = float(cy) + 0.5
+    Ready = true
+}
+
+// Walks a ray from the player through the grid, one cell edge at a time, and returns how far
+// it went before a solid cell, measured along the view so walls do not bulge.
+fn Cast(dx: float, dy: float) -> float {
+    let mapX = KismetMathLibrary.FFloor(Px)
+    let mapY = KismetMathLibrary.FFloor(Py)
+    let deltaX = 1000000.0
+    if dx != 0.0 {
+        deltaX = KismetMathLibrary.Abs(1.0 / dx)
+    }
+    let deltaY = 1000000.0
+    if dy != 0.0 {
+        deltaY = KismetMathLibrary.Abs(1.0 / dy)
+    }
+    let stepX = 1
+    let sideX = (float(mapX) + 1.0 - Px) * deltaX
+    if dx < 0.0 {
+        stepX = -1
+        sideX = (Px - float(mapX)) * deltaX
+    }
+    let stepY = 1
+    let sideY = (float(mapY) + 1.0 - Py) * deltaY
+    if dy < 0.0 {
+        stepY = -1
+        sideY = (Py - float(mapY)) * deltaY
+    }
+    let side = 0
+    let steps = 0
+    let hit = false
+    while !hit && steps < 48 {
+        if sideX < sideY {
+            sideX = sideX + deltaX
+            mapX = mapX + stepX
+            side = 0
+        } else {
+            sideY = sideY + deltaY
+            mapY = mapY + stepY
+            side = 1
+        }
+        let f = Flags(mapX, mapY, Pz)
+        if f & 32 != 0 {
+            hit = true
+            HitSurveyed = f & 128 != 0
+        }
+        steps = steps + 1
+    }
+    HitSide = side
+    if !hit {
+        return 48.0
+    }
+    if side == 0 {
+        return sideX - deltaX
+    }
+    return sideY - deltaY
+}
+
+fn Quad(x: float, y: float, w: float, h: float, c: LinearColor) {
+    let a = Vector2D(X: x, Y: y)
+    let d = Vector2D(X: x + w, Y: y + h)
+    Tris.Add(CanvasUVTri(V0_Pos: a, V1_Pos: Vector2D(X: x + w, Y: y), V2_Pos: d, V0_Color: c, V1_Color: c, V2_Color: c))
+    Tris.Add(CanvasUVTri(V0_Pos: a, V1_Pos: d, V2_Pos: Vector2D(X: x, Y: y + h), V0_Color: c, V1_Color: c, V2_Color: c))
+}
+
+// Where the player is, as the mod log reports it.
+fn Status() -> string {
+    return "PK_LoomMines: at " + string(Px) + ", " + string(Py) + " on layer " + string(Pz) + ", facing " + string(Angle) + ", a frame takes " + string(FrameMs) + " ms"
+}
+
+// Page Up and Page Down, held or not this frame. A layer changes once per press: only on the frame
+// a key goes down, however long it is held, and never past the terrain's top or bottom.
+// WasInputKeyJustPressed never fires here, so the press is detected from whether it is down.
+fn ChangeLayer(up: bool, down: bool) {
+    if up && !UpWasDown && Pz < Ez - 1 {
+        Pz = Pz + 1
+    }
+    UpWasDown = up
+    if down && !DownWasDown && Pz > 0 {
+        Pz = Pz - 1
+    }
+    DownWasDown = down
+}
+
+on ReceiveTick(dt: float) {
+    if !Ready {
+        Sys = GameplayStatics.GetActorOfClass(ArcoSystems)
+        if KismetSystemLibrary.IsValid(Sys) {
+            Spawn()
+        }
+        return
+    }
+    Since = Since + dt
+    if Since >= 10.0 {
+        Since = 0.0
+        ModAPI.GetModAPI().LogMessage(Status(), false)
+    }
+    let clock = GameplayStatics.GetAccurateRealTime()
+    let start = float(clock.Seconds) + clock.PartialSeconds
+
+    let pc = GameplayStatics.GetPlayerController(0)
+    if pc.IsInputKeyDown("Left") {
+        Angle = Angle - 1.8 * dt
+    }
+    if pc.IsInputKeyDown("Right") {
+        Angle = Angle + 1.8 * dt
+    }
+    let dirX = KismetMathLibrary.Cos(Angle)
+    let dirY = KismetMathLibrary.Sin(Angle)
+    let move = 0.0
+    if pc.IsInputKeyDown("Up") {
+        move = 3.0 * dt
+    }
+    if pc.IsInputKeyDown("Down") {
+        move = -3.0 * dt
+    }
+    // Each axis on its own, so walking into a wall slides along it.
+    let nx = Px + dirX * move
+    if !Solid(KismetMathLibrary.FFloor(nx), KismetMathLibrary.FFloor(Py), Pz) {
+        Px = nx
+    }
+    let ny = Py + dirY * move
+    if !Solid(KismetMathLibrary.FFloor(Px), KismetMathLibrary.FFloor(ny), Pz) {
+        Py = ny
+    }
+    ChangeLayer(pc.IsInputKeyDown("PageUp"), pc.IsInputKeyDown("PageDown"))
+
+    let planeX = -dirY * 0.66
+    let planeY = dirX * 0.66
+    let w = float(Width)
+    let h = float(Height)
+    Tris.Clear()
+    Quad(0.0, 0.0, w, h * 0.5, KismetMathLibrary.MakeColor(0.07, 0.08, 0.12))
+    Quad(0.0, h * 0.5, w, h * 0.5, KismetMathLibrary.MakeColor(0.2, 0.17, 0.13))
+    let i = 0
+    while i < Width {
+        let camera = 2.0 * float(i) / w - 1.0
+        let dist = Cast(dirX + planeX * camera, dirY + planeY * camera)
+        let lineH = h / KismetMathLibrary.FMax(dist, 0.05)
+        let top = KismetMathLibrary.FMax(h * 0.5 - lineH * 0.5, 0.0)
+        let bottom = KismetMathLibrary.FMin(h * 0.5 + lineH * 0.5, h)
+        let shade = 1.0 / (1.0 + dist * 0.12)
+        if HitSide == 1 {
+            shade = shade * 0.7
+        }
+        // Rock nobody has surveyed is fog in the game, and a cold blue here.
+        let c = KismetMathLibrary.MakeColor(0.62 * shade, 0.56 * shade, 0.5 * shade)
+        if !HitSurveyed {
+            c = KismetMathLibrary.MakeColor(0.3 * shade, 0.38 * shade, 0.55 * shade)
+        }
+        Quad(float(i), top, 1.0, bottom - top, c)
+        i = i + 1
+    }
+    let draw = KismetRenderingLibrary.BeginDrawCanvasToRenderTarget(Target)
+    draw.Canvas.K2_DrawTriangle(none, Tris)
+    KismetRenderingLibrary.EndDrawCanvasToRenderTarget(draw.Context)
+
+    let now = GameplayStatics.GetAccurateRealTime()
+    let ms = (float(now.Seconds) + now.PartialSeconds - start) * 1000.0
+    FrameMs = FrameMs + (ms - FrameMs) * 0.05
+}

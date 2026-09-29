@@ -1,0 +1,7 @@
+{
+  "blueprint": "/Game/Loom/Foreign/BP_LoomForeign",
+  "cases": [
+    {"name": "a struct made in the editor, made with its field set", "call": "Made", "expect": {"return": "true"}},
+    {"name": "its field set in place", "call": "SetInPlace", "expect": {"return": "true"}}
+  ]
+}

@@ -1,0 +1,22 @@
+{
+ "blueprint": "/Game/Mods/PK_LoomSum/BP_MapLoad",
+ "cases": [
+  {
+   "name": "sums 0 to 100",
+   "call": "Sum",
+   "args": {
+    "N": "100"
+   },
+   "expect": {
+    "Total": "5050"
+   }
+  },
+  {
+   "name": "what the mod log says",
+   "call": "Status",
+   "expect": {
+    "return": "PK_LoomSum: Total 5050"
+   }
+  }
+ ]
+}

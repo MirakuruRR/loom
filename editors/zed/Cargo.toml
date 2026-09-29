@@ -1,0 +1,17 @@
+[package]
+name = "zed-loom"
+version = "0.1.0"
+edition = "2024"
+license = "Zlib"
+publish = false
+
+[lib]
+path = "src/loom.rs"
+crate-type = ["cdylib"]
+
+[dependencies]
+zed_extension_api = "0.7.0"
+
+# Zed builds the extension alone, for WebAssembly, so it is not a member of the repository's
+# workspace.
+[workspace]

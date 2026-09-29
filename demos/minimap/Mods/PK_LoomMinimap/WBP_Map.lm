@@ -1,0 +1,6 @@
+blueprint WBP_Map : UserWidget at /Game/Mods/PK_LoomMinimap/WBP_Map
+
+// A frame on the left of the screen: a title bar over the picture.
+widget Frame: Border(BrushColor: "#12131ae8") at 64 188 size 1048 1094
+widget Title: TextBlock(Text: "Minimap.lm", ColorAndOpacity: "#e8e6ff") at 88 206 size 1000 40
+widget Map: Image at 88 258 size 1000 1000

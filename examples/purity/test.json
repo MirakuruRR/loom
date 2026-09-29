@@ -1,0 +1,8 @@
+{
+  "blueprint": "/Game/Loom/Examples/purity/BP_LoomPurity",
+  "cases": [
+    {"name": "a pure function", "call": "Area", "expect": {"return": "12"}},
+    {"name": "a pure function that changes a member runs each time it's read", "call": "Twice", "set": {"Reads": "0"}, "expect": {"return": "3", "Reads": "2"}},
+    {"name": "private and protected functions called by the Blueprint", "call": "Grown", "set": {"Width": "4"}, "expect": {"return": "30", "Width": "5"}}
+  ]
+}

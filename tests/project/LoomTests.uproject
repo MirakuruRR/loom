@@ -1,0 +1,12 @@
+{
+	"FileVersion": 3,
+	"EngineAssociation": "5.6",
+	"Category": "",
+	"Description": "Loom's test project. It holds no assets: cargo xtask links the plugin and the examples into it.",
+	"Plugins": [
+		{
+			"Name": "LoomEditor",
+			"Enabled": true
+		}
+	]
+}

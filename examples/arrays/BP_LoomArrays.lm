@@ -1,0 +1,32 @@
+blueprint BP_LoomArrays : Actor at /Game/Loom/Examples/arrays/BP_LoomArrays
+
+var Items: array<int>
+var Tris: array<CanvasUVTri>
+var Total: int = 0
+var Count: int = 0
+var Corner: float = 0.0
+
+fn Fill(n: int) {
+    Items.Clear()
+    let i = 0
+    while i < n {
+        Items.Add(i * i)
+        i = i + 1
+    }
+    Items[0] = 100
+    Count = Items.Length()
+    Total = 0
+    let j = 0
+    while j < Items.Length() {
+        Total = Total + Items[j]
+        j = j + 1
+    }
+}
+
+fn Triangles() {
+    Tris.Clear()
+    let p = Vector2D(X: 3.0, Y: 4.0)
+    Tris.Add(CanvasUVTri(V0_Pos: p, V1_Pos: p, V2_Pos: p))
+    Corner = Tris[0].V0_Pos.X
+    Count = Tris.Length()
+}

@@ -1,0 +1,8 @@
+{
+  "blueprint": "/Game/Loom/Examples/sum/BP_LoomSum",
+  "cases": [
+    {"name": "sum to 0", "set": {"Total": "7"}, "call": "Sum", "args": {"N": "0"}, "expect": {"Total": "0"}},
+    {"name": "sum to 100", "set": {"Total": "0"}, "call": "Sum", "args": {"N": "100"}, "expect": {"Total": "5050"}},
+    {"name": "sum to 10000, 100 times", "call": "Sum", "args": {"N": "10000"}, "repeat": 100, "expect": {"Total": "50005000"}}
+  ]
+}

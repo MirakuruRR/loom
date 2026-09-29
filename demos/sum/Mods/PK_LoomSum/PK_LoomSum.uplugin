@@ -1,0 +1,6 @@
+{
+  "Name": "Loom Sum",
+  "Description": "A loom test: BP_MapLoad sums 0..100 when a colony loads.",
+  "Version": "0.1",
+  "CreatedBy": "pierrekin"
+}

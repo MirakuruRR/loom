@@ -1,0 +1,99 @@
+{
+ "blueprint": "/Game/Mods/PK_LoomMines/BP_MapLoad",
+ "cases": [
+  {
+   "name": "Page Up goes up a layer",
+   "set": {
+    "Ez": "3",
+    "Pz": "0",
+    "UpWasDown": "false",
+    "DownWasDown": "false"
+   },
+   "call": "ChangeLayer",
+   "args": {
+    "up": "true",
+    "down": "false"
+   },
+   "expect": {
+    "Pz": "1"
+   }
+  },
+  {
+   "name": "holding it goes no further",
+   "call": "ChangeLayer",
+   "args": {
+    "up": "true",
+    "down": "false"
+   },
+   "expect": {
+    "Pz": "1"
+   }
+  },
+  {
+   "name": "letting go, then pressing again",
+   "call": "ChangeLayer",
+   "args": {
+    "up": "false",
+    "down": "false"
+   },
+   "expect": {
+    "Pz": "1"
+   }
+  },
+  {
+   "name": "goes up again",
+   "call": "ChangeLayer",
+   "args": {
+    "up": "true",
+    "down": "false"
+   },
+   "expect": {
+    "Pz": "2"
+   }
+  },
+  {
+   "name": "not past the top",
+   "call": "ChangeLayer",
+   "args": {
+    "up": "false",
+    "down": "false"
+   }
+  },
+  {
+   "name": "the top is the last layer",
+   "call": "ChangeLayer",
+   "args": {
+    "up": "true",
+    "down": "false"
+   },
+   "expect": {
+    "Pz": "2"
+   }
+  },
+  {
+   "name": "Page Down goes down",
+   "call": "ChangeLayer",
+   "args": {
+    "up": "false",
+    "down": "true"
+   },
+   "expect": {
+    "Pz": "1"
+   }
+  },
+  {
+   "name": "what the mod log says",
+   "set": {
+    "Px": "1.5",
+    "Py": "2.5",
+    "Pz": "1",
+    "Angle": "0.5",
+    "FrameMs": "2"
+   },
+   "call": "Status",
+   "expect": {
+    "return": "PK_LoomMines: at 1.5, 2.5 on layer 1, facing 0.5, a frame takes 2.0 ms"
+   }
+  }
+ ]
+}

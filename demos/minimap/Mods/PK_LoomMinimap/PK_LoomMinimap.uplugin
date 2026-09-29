@@ -1,0 +1,6 @@
+{
+  "Name": "Loom Minimap",
+  "Description": "A loom demo: draws a top-down map of the colony's terrain, a few rows a frame, from the game's own terrain cells.",
+  "Version": "0.1",
+  "CreatedBy": "pierrekin"
+}

@@ -1,0 +1,6 @@
+{
+  "Name": "Loom Tetris",
+  "Description": "A loom demo: Tetris in a window over the colony. Left and Right move, Up rotates, Down drops faster, Enter drops.",
+  "Version": "0.1",
+  "CreatedBy": "pierrekin"
+}

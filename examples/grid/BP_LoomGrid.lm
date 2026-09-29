@@ -1,0 +1,24 @@
+blueprint BP_LoomGrid : Actor at /Game/Loom/Examples/grid/BP_LoomGrid
+
+var Cells: int = 0
+var Sum: float = 0.0
+
+// The plasma demo's loops and per-cell maths, without the drawing.
+fn Fill(width: int, height: int, time: float) {
+    Cells = 0
+    Sum = 0.0
+    let y = 0
+    while y < height {
+        let x = 0
+        while x < width {
+            let fx = float(x) * 0.12
+            let fy = float(y) * 0.15
+            let v = KismetMathLibrary.Sin(fx + time) + KismetMathLibrary.Sin(fy + time * 1.3) + KismetMathLibrary.Sin((fx + fy) * 0.7 + time * 0.7)
+            let r = 0.5 + 0.5 * KismetMathLibrary.Sin(v * 2.0)
+            Sum = Sum + r
+            Cells = Cells + 1
+            x = x + 1
+        }
+        y = y + 1
+    }
+}

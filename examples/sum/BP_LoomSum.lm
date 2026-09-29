@@ -1,0 +1,16 @@
+blueprint BP_LoomSum : /Script/Engine.Actor at /Game/Loom/Examples/sum/BP_LoomSum
+
+var Total: int = 0
+
+fn Sum(N: int) {
+    Total = 0
+    let I: int = 0
+    while I <= N {
+        Total = Total + I
+        I = I + 1
+    }
+}
+
+on ReceiveBeginPlay {
+    Sum(100)
+}

@@ -1,0 +1,132 @@
+{
+  "name": "loom",
+  "displayName": "Loom",
+  "description": "Loom language support",
+  "version": "0.1.0",
+  "publisher": "pierrekin",
+  "author": "Pierre Hugo",
+  "license": "Zlib",
+  "homepage": "https://loom.pierrekin.me",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pierrekin/loom",
+    "directory": "editors/vscode"
+  },
+  "engines": {
+    "vscode": "^1.91.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "keywords": [
+    "loom",
+    "unreal",
+    "blueprint"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onLanguage:loom"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "Loom's language server is a program in the project's plugin, so it runs only in a trusted workspace.",
+      "restrictedConfigurations": [
+        "loom.server.path",
+        "loom.server.args"
+      ]
+    }
+  },
+  "contributes": {
+    "languages": [
+      {
+        "id": "loom",
+        "aliases": [
+          "Loom",
+          "loom"
+        ],
+        "extensions": [
+          ".lm"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "loom",
+        "scopeName": "source.loom",
+        "path": "./dist/loom.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "loom.restartServer",
+        "title": "Restart Language Server",
+        "category": "Loom"
+      }
+    ],
+    "configuration": {
+      "title": "Loom",
+      "properties": {
+        "loom.server.path": {
+          "type": "string",
+          "default": "",
+          "scope": "machine-overridable",
+          "markdownDescription": "The `loom` to run as the language server, in place of the one in the project's `Plugins/LoomEditor/Binaries/ThirdParty/Loom`. A relative path is from the project's folder, the one with its `.uproject`."
+        },
+        "loom.server.args": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "lsp"
+          ],
+          "scope": "machine-overridable",
+          "markdownDescription": "The arguments `loom` is run with as the language server."
+        },
+        "loom.trace.server": {
+          "type": "string",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "default": "off",
+          "scope": "window",
+          "markdownDescription": "Logs the messages between VS Code and Loom's language server to the Loom output."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "vscode:prepublish": "npm run check && node esbuild.mjs --production",
+    "check": "tsc --noEmit -p . && eslint",
+    "compile-tests": "tsc -p .",
+    "pretest": "npm run build && npm run compile-tests && cargo build -p loom-cli",
+    "test": "npm run test:unit && npm run test:integration",
+    "test:unit": "mocha out/test/unit/*.test.js",
+    "test:integration": "vscode-test",
+    "package": "vsce package --no-dependencies",
+    "ls": "vsce ls --no-dependencies"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^10.1.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^20.14.0",
+    "@types/vscode": "~1.91.0",
+    "@vscode/test-cli": "^0.0.15",
+    "@vscode/test-electron": "^3.1.0",
+    "@vscode/vsce": "^4.0.0",
+    "esbuild": "^0.28.2",
+    "eslint": "^10.11.0",
+    "mocha": "^11.7.6",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.70.1"
+  }
+}

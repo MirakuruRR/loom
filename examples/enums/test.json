@@ -1,0 +1,11 @@
+{
+  "blueprint": "/Game/Loom/Examples/enums/BP_LoomEnums",
+  "cases": [
+    {"name": "a declared enum's default value", "call": "Place", "expect": {"return": "0", "Holding": "Hammer"}},
+    {"name": "a value set by its name", "call": "Cuts", "set": {"Holding": "Saw"}, "expect": {"return": "true"}},
+    {"name": "another value", "call": "Cuts", "set": {"Holding": "Chisel"}, "expect": {"return": "false"}},
+    {"name": "a value's number is its place", "call": "Place", "set": {"Holding": "Chisel"}, "expect": {"return": "2"}},
+    {"name": "a match over a declared enum", "call": "Sound", "set": {"Holding": "Saw"}, "expect": {"return": "rasp"}},
+    {"name": "a match's else", "call": "Sound", "set": {"Holding": "Chisel"}, "expect": {"return": "tap"}}
+  ]
+}

@@ -1,0 +1,6 @@
+blueprint BPL_LoomHits : BlueprintFunctionLibrary at /Game/Loom/Examples/hits/BPL_LoomHits
+
+// A function whose last parameters have defaults, for another Blueprint to call.
+fn Hit(amount: int, times: int = 2, bonus: float = 0.5) -> float {
+    return float(amount * times) + bonus
+}

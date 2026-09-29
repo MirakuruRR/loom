@@ -1,0 +1,59 @@
+blueprint BP_LoomLiterals : Actor at /Game/Loom/Examples/literals/BP_LoomLiterals
+
+// Read from files beside this one when the Blueprint is compiled.
+var Words: map<name, string> = include("words.json")
+var Numbers: array<int> = include("numbers.json")
+var Tri: CanvasUVTri
+var Tris: array<CanvasUVTri>
+var Total: float = 0.0
+var Key: name = "none"
+var Same: bool = false
+var Made: bool = false
+var Seen: string = ""
+
+fn Sum(values: array<float>) -> float {
+    let total = 0.0
+    for value in values {
+        total = total + value
+    }
+    return total
+}
+
+fn Count(words: map<name, string>) -> int {
+    return words.Length()
+}
+
+// Arrays and maps written out where a function takes one.
+fn Arguments() {
+    Total = Sum([1, 2.5, 3])
+    Seen = string(Count({"a": "x", "b": "y"}))
+}
+
+fn Included() {
+    Total = float(Numbers[0] + Numbers[2])
+    Seen = Words["greeting"]
+}
+
+fn Names() {
+    Key = name("greet" + "ing")
+    Same = Key == "greeting" && "greeting" == Key && Key != "farewell"
+}
+
+fn Inferred() {
+    let items = [1, 2, 3]
+    let floats = [1, 2.5]
+    Total = float(items.Length()) + floats[1]
+}
+
+// Fields set through a struct that is itself a field, or an array's item.
+fn Fields() {
+    Tri.V0_Pos.X = 5.0
+    Tris.Clear()
+    Tris.Add(CanvasUVTri(V0_Pos: Vector2D(X: 0.0, Y: 0.0)))
+    Tris[0].V1_Pos.Y = 7.0
+    Total = Tri.V0_Pos.X + Tris[0].V1_Pos.Y
+}
+
+fn Construct() {
+    Made = construct(HorizontalBox, self) != none
+}

@@ -1,0 +1,7 @@
+{
+  "version": 0,
+  "ops": [
+    {"op":"enum","path":"/Game/Loom/Examples/tool/E_LoomTool","source":"examples/tool/E_LoomTool.lm","values":[{"name":"Hammer"},{"name":"Saw","label":"Hand Saw","description":"Cuts wood. The editor shows it by its label."},{"name":"Chisel"}],"description":"What a worker holds. An enum's source holds the enum alone, and every other source can use it."},
+    {"op":"save"}
+  ]
+}

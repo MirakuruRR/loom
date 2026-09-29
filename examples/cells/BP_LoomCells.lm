@@ -1,0 +1,20 @@
+blueprint BP_LoomCells : Actor at /Game/Loom/Examples/cells/BP_LoomCells
+
+// A struct declared by another source, used by its name.
+var Start: S_LoomCell = S_LoomCell(X: 2)
+
+// The fields not given start at their defaults.
+fn Defaults() -> int {
+    let c = S_LoomCell(X: 5)
+    return c.X * 100 + c.Y * 10 + int(c.Tool)
+}
+
+fn Up() -> int {
+    Start.Y = Start.Y + 1
+    return Start.Y
+}
+
+fn Tagged(tag: string) -> int {
+    Start.Tags.Add(tag)
+    return Start.Tags.Length()
+}

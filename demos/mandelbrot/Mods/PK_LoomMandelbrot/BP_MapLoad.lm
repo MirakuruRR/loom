@@ -1,0 +1,113 @@
+blueprint BP_MapLoad : Actor at /Game/Mods/PK_LoomMandelbrot/BP_MapLoad
+
+var Target: TextureRenderTarget2D
+var Tris: array<CanvasUVTri>
+// The view: the point it zooms into, and how wide it is on the complex plane.
+var CenterX: float = -0.743643887
+var CenterY: float = 0.131825904
+var Width: float = 3.0
+// Each pass narrows the view by Zoom, and starts over from the whole set once it is narrower
+// than Deepest.
+var Zoom: float = 0.8
+var Deepest: float = 0.00005
+// The grid, in cells of 2 by 2 pixels, and how many steps a point gets to escape.
+var Columns: int = 80
+var Rows: int = 50
+var MaxSteps: int = 64
+// The next row to draw, and how many each frame draws. The render target keeps what it was drawn,
+// so each pass paints over the last a few rows at a time.
+var Row: int = 0
+var RowsPerTick: int = 1
+var Passes: int = 0
+// How long each frame spends building and drawing, in milliseconds, smoothed.
+var BuildMs: float = 0.0
+// Seconds since the mod log last heard how it is doing.
+var Since: float = 0.0
+
+on ReceiveBeginPlay {
+    SetTickableWhenPaused(true)
+    Target = KismetRenderingLibrary.CreateRenderTarget2D(160, 100)
+    let screen = create_widget(WBP_Screen)
+    screen.AddToViewport(10)
+    screen.Screen.SetBrushResourceObject(Target)
+}
+
+// How many steps the point takes to escape, or MaxSteps if it never does: then it is in the set.
+fn Escape(cx: float, cy: float) -> int {
+    let x = 0.0
+    let y = 0.0
+    let n = 0
+    while n < MaxSteps && x * x + y * y <= 4.0 {
+        let t = x * x - y * y + cx
+        y = 2.0 * x * y + cy
+        x = t
+        n = n + 1
+    }
+    return n
+}
+
+// Black inside the set, and outside it a colour by how fast the point escaped, shifting each pass.
+fn Colour(n: int) -> LinearColor {
+    if n >= MaxSteps {
+        return KismetMathLibrary.MakeColor(0.0, 0.0, 0.0)
+    }
+    let t = float(n) * 0.15 + float(Passes) * 0.4
+    let r = 0.5 + 0.5 * KismetMathLibrary.Sin(t)
+    let g = 0.5 + 0.5 * KismetMathLibrary.Sin(t + 2.1)
+    let b = 0.5 + 0.5 * KismetMathLibrary.Sin(t + 4.2)
+    return KismetMathLibrary.MakeColor(r, g, b)
+}
+
+// On to the next row, and after the last, zoom in and start the next pass at the top.
+fn NextRow() {
+    Row = Row + 1
+    if Row >= Rows {
+        Row = 0
+        Passes = Passes + 1
+        Width = Width * Zoom
+        if Width < Deepest {
+            Width = 3.0
+        }
+    }
+}
+
+// How far it has got, as the mod log reports it.
+fn Status() -> string {
+    return "PK_LoomMandelbrot: pass " + string(Passes + 1) + ", " + string(Width) + " wide, building takes " + string(BuildMs) + " ms"
+}
+
+on ReceiveTick(dt: float) {
+    Since = Since + dt
+    if Since >= 10.0 {
+        Since = 0.0
+        ModAPI.GetModAPI().LogMessage(Status(), false)
+    }
+    let clock = GameplayStatics.GetAccurateRealTime()
+    let start = float(clock.Seconds) + clock.PartialSeconds
+    let height = Width * float(Rows) / float(Columns)
+    Tris.Clear()
+    let n = 0
+    while n < RowsPerTick {
+        let cy = CenterY + ((float(Row) + 0.5) / float(Rows) - 0.5) * height
+        let x = 0
+        while x < Columns {
+            let cx = CenterX + ((float(x) + 0.5) / float(Columns) - 0.5) * Width
+            let c = Colour(Escape(cx, cy))
+            let left = float(x) * 2.0
+            let top = float(Row) * 2.0
+            let a = Vector2D(X: left, Y: top)
+            let d = Vector2D(X: left + 2.0, Y: top + 2.0)
+            Tris.Add(CanvasUVTri(V0_Pos: a, V1_Pos: Vector2D(X: left + 2.0, Y: top), V2_Pos: d, V0_Color: c, V1_Color: c, V2_Color: c))
+            Tris.Add(CanvasUVTri(V0_Pos: a, V1_Pos: d, V2_Pos: Vector2D(X: left, Y: top + 2.0), V0_Color: c, V1_Color: c, V2_Color: c))
+            x = x + 1
+        }
+        NextRow()
+        n = n + 1
+    }
+    let draw = KismetRenderingLibrary.BeginDrawCanvasToRenderTarget(Target)
+    draw.Canvas.K2_DrawTriangle(none, Tris)
+    KismetRenderingLibrary.EndDrawCanvasToRenderTarget(draw.Context)
+    let now = GameplayStatics.GetAccurateRealTime()
+    let ms = (float(now.Seconds) + now.PartialSeconds - start) * 1000.0
+    BuildMs = BuildMs + (ms - BuildMs) * 0.05
+}

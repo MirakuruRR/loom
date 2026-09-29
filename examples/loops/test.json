@@ -1,0 +1,18 @@
+{
+  "blueprint": "/Game/Loom/Examples/loops/BP_LoomLoops",
+  "cases": [
+    {"name": "a while left early", "call": "FirstSquareOver", "args": {"limit": "10"}, "expect": {"return": "4"}},
+    {"name": "a while left on its first pass", "call": "FirstSquareOver", "args": {"limit": "-1"}, "expect": {"return": "0"}},
+    {"name": "a for left early", "set": {"Items": "(3,-1,4,0,5)"}, "call": "FirstNegative", "expect": {"return": "1"}},
+    {"name": "a for never left early", "set": {"Items": "(2,4)"}, "call": "FirstNegative", "expect": {"return": "-1"}},
+    {"name": "passes of a while skipped", "call": "SumOdd", "args": {"n": "10"}, "expect": {"return": "25"}},
+    {"name": "passes of a for skipped", "set": {"Items": "(3,-1,4,0,5)"}, "call": "SumPositive", "expect": {"return": "12"}},
+    {"name": "a for whose every path leaves the body", "set": {"Items": "(3,-1,4,0,5)"}, "call": "AbsUntilZero", "expect": {"return": "8"}},
+    {"name": "a for whose every path leaves the body, to its end", "set": {"Items": "(2,-4)"}, "call": "AbsUntilZero", "expect": {"return": "6"}},
+    {"name": "entries of a map skipped", "call": "Stocked", "expect": {"return": "2"}},
+    {"name": "an inner break leaves only the inner loop", "call": "CountPairs", "args": {"rows": "3", "limit": "6"}, "expect": {"return": "11"}},
+    {"name": "a count, to its last number, read before every pass", "call": "SumTo", "args": {"n": "5"}, "expect": {"return": "7"}},
+    {"name": "a count whose first number is past its last", "call": "SumTo", "args": {"n": "0"}, "expect": {"return": "0"}},
+    {"name": "a count inside a count, left early", "call": "Triangle", "args": {"size": "3"}, "expect": {"return": "6"}}
+  ]
+}

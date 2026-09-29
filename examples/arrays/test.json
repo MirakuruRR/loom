@@ -1,0 +1,8 @@
+{
+  "blueprint": "/Game/Loom/Examples/arrays/BP_LoomArrays",
+  "cases": [
+    {"name": "fill, read, write and measure", "call": "Fill", "args": {"n": "4"}, "expect": {"Count": "4", "Total": "114"}},
+    {"name": "one item, overwritten", "call": "Fill", "args": {"n": "1"}, "expect": {"Count": "1", "Total": "100"}},
+    {"name": "structs made, stored and broken", "call": "Triangles", "expect": {"Count": "1", "Corner": "3.000000"}}
+  ]
+}

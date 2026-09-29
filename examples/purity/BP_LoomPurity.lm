@@ -1,0 +1,39 @@
+blueprint BP_LoomPurity : Actor at /Game/Loom/Examples/purity/BP_LoomPurity
+
+var Width: int = 4
+var Height: int = 3
+var Reads: int = 0
+
+// A pure function's node has no exec pins, and changes nothing outside itself.
+pure fn Area() -> int {
+    let total = 0
+    for row in 1..Height {
+        total += Width
+    }
+    return total
+}
+
+// One that may change what is outside it runs again each time its value is read.
+pure mut fn Next() -> int {
+    Reads += 1
+    return Reads
+}
+
+fn Twice() -> int {
+    return Next() + Next()
+}
+
+// Only this Blueprint may call a private function, and it and those that derive from it a
+// protected one.
+private pure fn Doubled(n: int) -> int {
+    return n * 2
+}
+
+protected fn Grow() {
+    Width += 1
+}
+
+fn Grown() -> int {
+    Grow()
+    return Doubled(Area())
+}

@@ -1,0 +1,65 @@
+blueprint BP_LoomInterfaces : Actor at /Game/Loom/Examples/interfaces/BP_LoomInterfaces
+implements DataflowSimulationActor
+implements MovieSceneEasingFunction
+
+var Ticks: int = 0
+var Elapsed: float = 0.0
+var Easing: MovieSceneEasingFunction
+
+// An event of an interface, which returns nothing, so its handler is an event.
+on PreDataflowSimulationTick(time: float, dt: float) {
+    Ticks = Ticks + 1
+    Elapsed = Elapsed + dt
+}
+
+// A function of an interface that returns a value, overridden as a function.
+on OnEvaluate(t: float) -> float {
+    return t * 2
+}
+
+// Each called through a cast to its interface.
+fn ThroughCasts() -> float {
+    let simulation = cast(self, DataflowSimulationActor)
+    simulation.PreDataflowSimulationTick(1.0, 0.5)
+    return cast(self, MovieSceneEasingFunction).OnEvaluate(0.25)
+}
+
+// Each called on this object without a cast, as its class implements them.
+fn Direct() -> float {
+    PreDataflowSimulationTick(1.0, 0.25)
+    return self.OnEvaluate(1.5)
+}
+
+// A function of an interface that this Blueprint has no handler for, which does nothing.
+fn Unhandled() {
+    PostDataflowSimulationTick(1.0, 5.0)
+}
+
+// An interface held in a variable, and passed as a parameter.
+fn Evaluate(easing: MovieSceneEasingFunction, t: float) -> float {
+    return easing.OnEvaluate(t)
+}
+
+fn Held() -> float {
+    Easing = cast(self, MovieSceneEasingFunction)
+    if Easing == none {
+        return -1.0
+    }
+    return Evaluate(Easing, 4)
+}
+
+fn ImplementedHere() -> bool {
+    return implements(self, MovieSceneEasingFunction)
+}
+
+fn ImplementedByAnother() -> bool {
+    return implements(construct(HorizontalBox, self), MovieSceneEasingFunction)
+}
+
+// On an object that does not implement the interfaces, the calls do nothing, and a value comes
+// back as zero.
+fn OnAnother() -> float {
+    let box = construct(HorizontalBox, self)
+    cast(box, DataflowSimulationActor).PreDataflowSimulationTick(1.0, 3.0)
+    return cast(box, MovieSceneEasingFunction).OnEvaluate(0.5)
+}

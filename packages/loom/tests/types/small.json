@@ -1,0 +1,1560 @@
+{
+ "classes": {
+  "/Script/Engine.KismetArrayLibrary": {"super": "/Script/Engine.BlueprintFunctionLibrary", "properties": {}, "functions": {"SortStringArray": {"flags": ["static"], "params": [{"type": "array<string>", "name": "TargetArray", "dir": "ref"}, {"type": "bool", "name": "bStableSort", "dir": "in", "default": "false"}, {"type": "enum:/Script/Engine.EArraySortOrder", "name": "SortOrder", "dir": "in", "default": "Ascending"}]}, "SortNameArray": {"flags": ["static"], "params": [{"type": "array<name>", "name": "TargetArray", "dir": "ref"}, {"type": "bool", "name": "bStableSort", "dir": "in", "default": "false"}, {"type": "bool", "name": "bLexicalSort", "dir": "in", "default": "true"}, {"type": "enum:/Script/Engine.EArraySortOrder", "name": "SortOrder", "dir": "in", "default": "Ascending"}]}, "SortIntArray": {"flags": ["static"], "params": [{"type": "array<int>", "name": "TargetArray", "dir": "ref"}, {"type": "bool", "name": "bStableSort", "dir": "in", "default": "false"}, {"type": "enum:/Script/Engine.EArraySortOrder", "name": "SortOrder", "dir": "in", "default": "Ascending"}]}, "SortInt64Array": {"flags": ["static"], "params": [{"type": "array<int64>", "name": "TargetArray", "dir": "ref"}, {"type": "bool", "name": "bStableSort", "dir": "in", "default": "false"}, {"type": "enum:/Script/Engine.EArraySortOrder", "name": "SortOrder", "dir": "in", "default": "Ascending"}]}, "SortFloatArray": {"flags": ["static"], "params": [{"type": "array<float>", "name": "TargetArray", "dir": "ref"}, {"type": "bool", "name": "bStableSort", "dir": "in", "default": "false"}, {"type": "enum:/Script/Engine.EArraySortOrder", "name": "SortOrder", "dir": "in", "default": "Ascending"}]}, "SortByteArray": {"flags": ["static"], "params": [{"type": "array<byte>", "name": "TargetArray", "dir": "ref"}, {"type": "bool", "name": "bStableSort", "dir": "in", "default": "false"}, {"type": "enum:/Script/Engine.EArraySortOrder", "name": "SortOrder", "dir": "in", "default": "Ascending"}]}, "SetArrayPropertyByName": {"flags": ["static", "internal"], "params": [{"type": "object:/Script/CoreUObject.Object", "name": "Object", "dir": "in"}, {"type": "name", "name": "PropertyName", "dir": "in"}, {"type": "array<int>", "name": "Value", "dir": "in", "wired": true, "generic": "container"}]}, "FilterArray": {"flags": ["static"], "determines_output_type": "FilterClass", "params": [{"type": "array<object:/Script/Engine.Actor>", "name": "TargetArray", "dir": "in", "wired": true}, {"type": "class:/Script/Engine.Actor", "name": "FilterClass", "dir": "in"}, {"type": "array<object:/Script/Engine.Actor>", "name": "FilteredArray", "dir": "out"}]}, "Array_Swap": {"flags": ["static"], "params": [{"type": "array<int>", "name": "TargetArray", "dir": "in", "wired": true, "generic": "container"}, {"type": "int", "name": "FirstIndex", "dir": "in"}, {"type": "int", "name": "SecondIndex", "dir": "in"}]}, "Array_ShuffleFromStream": {"flags": ["static"], "params": [{"type": "array<int>", "name": "TargetArray", "dir": "in", "wired": true, "generic": "container"}, {"type": "struct:/Script/CoreUObject.RandomStream", "name": "RandomStream", "dir": "ref"}]}, "Array_Shuffle": {"flags": ["static"], "params": [{"type": "array<int>", "name": "TargetArray", "dir": "in", "wired": true, "generic": "container"}]}, "Array_Set": {"flags": ["static"], "params": [{"type": "array<int>", "name": "TargetArray", "dir": "in", "wired": true, "generic": "container"}, {"type": "int", "name": "Index", "dir": "in"}, {"type": "int", "name": "Item", "dir": "in", "generic": "item"}, {"type": "bool", "name": "bSizeToFit", "dir": "in"}]}, "Array_Reverse": {"flags": ["static"], "params": [{"type": "array<int>", "name": "TargetArray", "dir": "in", "wired": true, "generic": "container"}]}, "Array_Resize": {"flags": ["static"], "params": [{"type": "array<int>", "name": "TargetArray", "dir": "in", "wired": true, "generic": "container"}, {"type": "int", "name": "Size", "dir": "in"}]}, "Array_RemoveItem": {"flags": ["static"], "params": [{"type": "array<int>", "name": "TargetArray", "dir": "in", "wired": true, "generic": "container"}, {"type": "int", "name": "Item", "dir": "in", "generic": "item"}, {"type": "bool", "name": "ReturnValue", "dir": "return"}]}, "Array_Remove": {"flags": ["static"], "params": [{"type": "array<int>", "name": "TargetArray", "dir": "in", "wired": true, "generic": "container"}, {"type": "int", "name": "IndexToRemove", "dir": "in"}]}, "Array_RandomFromStream": {"flags": ["pure", "static"], "params": [{"type": "array<int>", "name": "TargetArray", "dir": "in", "wired": true, "generic": "container"}, {"type": "struct:/Script/CoreUObject.RandomStream", "name": "RandomStream", "dir": "ref"}, {"type": "int", "name": "OutItem", "dir": "out", "generic": "item"}, {"type": "int", "name": "OutIndex", "dir": "out"}]}, "Array_Random": {"flags": ["pure", "static"], "params": [{"type": "array<int>", "name": "TargetArray", "dir": "in", "wired": true, "generic": "container"}, {"type": "int", "name": "OutItem", "dir": "out", "generic": "item"}, {"type": "int", "name": "OutIndex", "dir": "out"}]}, "Array_Length": {"flags": ["pure", "static"], "params": [{"type": "array<int>", "name": "TargetArray", "dir": "in", "wired": true, "generic": "container"}, {"type": "int", "name": "ReturnValue", "dir": "return"}]}, "Array_LastIndex": {"flags": ["pure", "static"], "params": [{"type": "array<int>", "name": "TargetArray", "dir": "in", "wired": true, "generic": "container"}, {"type": "int", "name": "ReturnValue", "dir": "return"}]}, "Array_IsValidIndex": {"flags": ["pure", "static"], "params": [{"type": "array<int>", "name": "TargetArray", "dir": "in", "wired": true, "generic": "container"}, {"type": "int", "name": "IndexToTest", "dir": "in"}, {"type": "bool", "name": "ReturnValue", "dir": "return"}]}, "Array_IsNotEmpty": {"flags": ["pure", "static"], "params": [{"type": "array<int>", "name": "TargetArray", "dir": "in", "wired": true, "generic": "container"}, {"type": "bool", "name": "ReturnValue", "dir": "return"}]}, "Array_IsEmpty": {"flags": ["pure", "static"], "params": [{"type": "array<int>", "name": "TargetArray", "dir": "in", "wired": true, "generic": "container"}, {"type": "bool", "name": "ReturnValue", "dir": "return"}]}, "Array_Insert": {"flags": ["static"], "params": [{"type": "array<int>", "name": "TargetArray", "dir": "in", "wired": true, "generic": "container"}, {"type": "int", "name": "NewItem", "dir": "in", "generic": "item"}, {"type": "int", "name": "Index", "dir": "in"}]}, "Array_Identical": {"flags": ["pure", "static"], "params": [{"type": "array<int>", "name": "ArrayA", "dir": "in", "wired": true, "generic": "container"}, {"type": "array<int>", "name": "ArrayB", "dir": "in", "wired": true, "generic": "container"}, {"type": "bool", "name": "ReturnValue", "dir": "return"}]}, "Array_Get": {"flags": ["pure", "static", "internal"], "params": [{"type": "array<int>", "name": "TargetArray", "dir": "in", "wired": true, "generic": "container"}, {"type": "int", "name": "Index", "dir": "in"}, {"type": "int", "name": "Item", "dir": "out", "generic": "item"}]}, "Array_Find": {"flags": ["pure", "static"], "params": [{"type": "array<int>", "name": "TargetArray", "dir": "in", "wired": true, "generic": "container"}, {"type": "int", "name": "ItemToFind", "dir": "in", "generic": "item"}, {"type": "int", "name": "ReturnValue", "dir": "return"}]}, "Array_Contains": {"flags": ["pure", "static"], "params": [{"type": "array<int>", "name": "TargetArray", "dir": "in", "wired": true, "generic": "container"}, {"type": "int", "name": "ItemToFind", "dir": "in", "generic": "item"}, {"type": "bool", "name": "ReturnValue", "dir": "return"}]}, "Array_Clear": {"flags": ["static"], "params": [{"type": "array<int>", "name": "TargetArray", "dir": "in", "wired": true, "generic": "container"}]}, "Array_Append": {"flags": ["static"], "params": [{"type": "array<int>", "name": "TargetArray", "dir": "in", "wired": true, "generic": "container"}, {"type": "array<int>", "name": "SourceArray", "dir": "in", "wired": true, "generic": "container"}]}, "Array_AddUnique": {"flags": ["static"], "params": [{"type": "array<int>", "name": "TargetArray", "dir": "in", "wired": true, "generic": "container"}, {"type": "int", "name": "NewItem", "dir": "in", "generic": "item"}, {"type": "int", "name": "ReturnValue", "dir": "return"}]}, "Array_Add": {"flags": ["static"], "params": [{"type": "array<int>", "name": "TargetArray", "dir": "in", "wired": true, "generic": "container"}, {"type": "int", "name": "NewItem", "dir": "in", "generic": "item"}, {"type": "int", "name": "ReturnValue", "dir": "return"}]}}},
+  "/Script/Engine.BlueprintSetLibrary": {"super": "/Script/Engine.BlueprintFunctionLibrary", "properties": {}, "functions": {"SetSetPropertyByName": {"flags": ["static", "internal"], "params": [{"type": "object:/Script/CoreUObject.Object", "name": "Object", "dir": "in"}, {"type": "name", "name": "PropertyName", "dir": "in"}, {"type": "set<int>", "name": "Value", "dir": "in", "wired": true, "generic": "container"}]}, "Set_Union": {"flags": ["static"], "params": [{"type": "set<int>", "name": "A", "dir": "in", "wired": true, "generic": "container"}, {"type": "set<int>", "name": "B", "dir": "in", "wired": true, "generic": "container"}, {"type": "set<int>", "name": "Result", "dir": "out", "generic": "container"}]}, "Set_ToArray": {"flags": ["static"], "params": [{"type": "set<int>", "name": "A", "dir": "in", "wired": true, "generic": "container"}, {"type": "array<int>", "name": "Result", "dir": "out", "generic": "item"}]}, "Set_RemoveItems": {"flags": ["static"], "params": [{"type": "set<int>", "name": "TargetSet", "dir": "in", "wired": true, "generic": "container"}, {"type": "array<int>", "name": "Items", "dir": "in", "generic": "item"}]}, "Set_Remove": {"flags": ["static"], "params": [{"type": "set<int>", "name": "TargetSet", "dir": "in", "wired": true, "generic": "container"}, {"type": "int", "name": "Item", "dir": "in", "generic": "item"}, {"type": "bool", "name": "ReturnValue", "dir": "return"}]}, "Set_Length": {"flags": ["pure", "static"], "params": [{"type": "set<int>", "name": "TargetSet", "dir": "in", "wired": true, "generic": "container"}, {"type": "int", "name": "ReturnValue", "dir": "return"}]}, "Set_IsNotEmpty": {"flags": ["pure", "static"], "params": [{"type": "set<int>", "name": "TargetSet", "dir": "in", "wired": true, "generic": "container"}, {"type": "bool", "name": "ReturnValue", "dir": "return"}]}, "Set_IsEmpty": {"flags": ["pure", "static"], "params": [{"type": "set<int>", "name": "TargetSet", "dir": "in", "wired": true, "generic": "container"}, {"type": "bool", "name": "ReturnValue", "dir": "return"}]}, "Set_Intersection": {"flags": ["static"], "params": [{"type": "set<int>", "name": "A", "dir": "in", "wired": true, "generic": "container"}, {"type": "set<int>", "name": "B", "dir": "in", "wired": true, "generic": "container"}, {"type": "set<int>", "name": "Result", "dir": "out", "generic": "container"}]}, "Set_GetLastIndex": {"flags": ["pure", "static"], "params": [{"type": "set<int>", "name": "TargetSet", "dir": "in", "wired": true, "generic": "container"}, {"type": "int", "name": "ReturnValue", "dir": "return"}]}, "Set_GetItemByIndex": {"flags": ["pure", "static"], "params": [{"type": "set<int>", "name": "TargetSet", "dir": "in", "wired": true, "generic": "container"}, {"type": "int", "name": "Index", "dir": "in"}, {"type": "int", "name": "Item", "dir": "out", "generic": "item"}]}, "Set_Difference": {"flags": ["static"], "params": [{"type": "set<int>", "name": "A", "dir": "in", "wired": true, "generic": "container"}, {"type": "set<int>", "name": "B", "dir": "in", "wired": true, "generic": "container"}, {"type": "set<int>", "name": "Result", "dir": "out", "generic": "container"}]}, "Set_Contains": {"flags": ["pure", "static"], "params": [{"type": "set<int>", "name": "TargetSet", "dir": "in", "wired": true, "generic": "container"}, {"type": "int", "name": "ItemToFind", "dir": "in", "generic": "item"}, {"type": "bool", "name": "ReturnValue", "dir": "return"}]}, "Set_Clear": {"flags": ["static"], "params": [{"type": "set<int>", "name": "TargetSet", "dir": "in", "wired": true, "generic": "container"}]}, "Set_AddItems": {"flags": ["static"], "params": [{"type": "set<int>", "name": "TargetSet", "dir": "in", "wired": true, "generic": "container"}, {"type": "array<int>", "name": "NewItems", "dir": "in", "generic": "item"}]}, "Set_Add": {"flags": ["static"], "params": [{"type": "set<int>", "name": "TargetSet", "dir": "in", "wired": true, "generic": "container"}, {"type": "int", "name": "NewItem", "dir": "in", "generic": "item"}]}}},
+  "/Script/Engine.BlueprintMapLibrary": {"super": "/Script/Engine.BlueprintFunctionLibrary", "properties": {}, "functions": {"SetMapPropertyByName": {"flags": ["static", "internal"], "params": [{"type": "object:/Script/CoreUObject.Object", "name": "Object", "dir": "in"}, {"type": "name", "name": "PropertyName", "dir": "in"}, {"type": "map<int,int>", "name": "Value", "dir": "in", "wired": true, "generic": "container"}]}, "Map_Values": {"flags": ["static"], "params": [{"type": "map<int,int>", "name": "TargetMap", "dir": "in", "wired": true, "generic": "container"}, {"type": "array<int>", "name": "Values", "dir": "out", "generic": "value"}]}, "Map_Remove": {"flags": ["static"], "params": [{"type": "map<int,int>", "name": "TargetMap", "dir": "in", "wired": true, "generic": "container"}, {"type": "int", "name": "Key", "dir": "in", "generic": "key"}, {"type": "bool", "name": "ReturnValue", "dir": "return"}]}, "Map_Length": {"flags": ["pure", "static"], "params": [{"type": "map<int,int>", "name": "TargetMap", "dir": "in", "wired": true, "generic": "container"}, {"type": "int", "name": "ReturnValue", "dir": "return"}]}, "Map_Keys": {"flags": ["static"], "params": [{"type": "map<int,int>", "name": "TargetMap", "dir": "in", "wired": true, "generic": "container"}, {"type": "array<int>", "name": "Keys", "dir": "out", "generic": "key"}]}, "Map_IsNotEmpty": {"flags": ["pure", "static"], "params": [{"type": "map<int,int>", "name": "TargetMap", "dir": "in", "wired": true, "generic": "container"}, {"type": "bool", "name": "ReturnValue", "dir": "return"}]}, "Map_IsEmpty": {"flags": ["pure", "static"], "params": [{"type": "map<int,int>", "name": "TargetMap", "dir": "in", "wired": true, "generic": "container"}, {"type": "bool", "name": "ReturnValue", "dir": "return"}]}, "Map_GetLastIndex": {"flags": ["pure", "static"], "params": [{"type": "map<int,int>", "name": "TargetMap", "dir": "in", "wired": true, "generic": "container"}, {"type": "int", "name": "ReturnValue", "dir": "return"}]}, "Map_GetKeyValueByIndex": {"flags": ["pure", "static"], "params": [{"type": "map<int,int>", "name": "TargetMap", "dir": "in", "wired": true, "generic": "container"}, {"type": "int", "name": "Index", "dir": "in"}, {"type": "int", "name": "Key", "dir": "out", "generic": "key"}, {"type": "int", "name": "Value", "dir": "out", "generic": "value"}]}, "Map_Find": {"flags": ["pure", "static"], "params": [{"type": "map<int,int>", "name": "TargetMap", "dir": "in", "wired": true, "generic": "container"}, {"type": "int", "name": "Key", "dir": "in", "generic": "key"}, {"type": "int", "name": "Value", "dir": "out", "generic": "value"}, {"type": "bool", "name": "ReturnValue", "dir": "return"}]}, "Map_Contains": {"flags": ["pure", "static"], "params": [{"type": "map<int,int>", "name": "TargetMap", "dir": "in", "wired": true, "generic": "container"}, {"type": "int", "name": "Key", "dir": "in", "generic": "key"}, {"type": "bool", "name": "ReturnValue", "dir": "return"}]}, "Map_Clear": {"flags": ["static"], "params": [{"type": "map<int,int>", "name": "TargetMap", "dir": "in", "wired": true, "generic": "container"}]}, "Map_Add": {"flags": ["static"], "params": [{"type": "map<int,int>", "name": "TargetMap", "dir": "in", "wired": true, "generic": "container"}, {"type": "int", "name": "Key", "dir": "in", "generic": "key"}, {"type": "int", "name": "Value", "dir": "in", "generic": "value"}]}}},
+  "/Script/UMG.HorizontalBox": {"properties": {}, "functions": {}},
+  "/Script/CoreUObject.Object": {
+   "abstract": true,
+   "functions": {
+    "ExecuteUbergraph": {
+     "flags": [
+      "event",
+      "not_callable",
+      "internal"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "EntryPoint",
+       "type": "int"
+      }
+     ]
+    }
+   },
+   "properties": {}
+  },
+  "/Script/Engine.Actor": {
+   "functions": {
+    "GetActorTimeDilation": {
+     "flags": [
+      "pure",
+      "const"
+     ],
+     "params": [
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "float32"
+      }
+     ]
+    },
+    "SetTickGroup": {
+     "flags": [],
+     "params": [
+      {"type": "enum:/Script/Engine.ETickingGroup", "name": "NewTickGroup", "dir": "in"}
+     ]
+    },
+    "K2_DestroyActor": {
+     "flags": [],
+     "params": []
+    },
+    "SetLifeSpan": {
+     "flags": [],
+     "params": [
+      {"dir": "in", "name": "InLifespan", "type": "float32"}
+     ]
+    },
+    "K2_GetActorLocation": {
+     "flags": ["pure", "const"],
+     "params": [
+      {"dir": "return", "name": "ReturnValue", "type": "struct:/Script/CoreUObject.Vector2D"}
+     ]
+    },
+    "ReceiveBeginPlay": {
+     "flags": [
+      "event",
+      "not_callable"
+     ],
+     "params": []
+    },
+    "ReceiveTick": {
+     "flags": [
+      "event",
+      "not_callable"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "DeltaSeconds",
+       "type": "float32"
+      }
+     ]
+    }
+   },
+   "properties": {
+    "CustomTimeDilation": {
+     "type": "float32"
+    },
+    "InitialLifeSpan": {
+     "read_only": true,
+     "type": "float32"
+    },
+    "Tags": {
+     "type": "array<name>"
+    },
+    "OnDestroyed": {
+     "signature": [
+      {"dir": "in", "name": "DestroyedActor", "type": "object:/Script/Engine.Actor"}
+     ],
+     "type": "multicast_delegate"
+    },
+    "OnTakeAnyDamage": {
+     "signature": [
+      {"dir": "in", "name": "DamagedActor", "type": "object:/Script/Engine.Actor"},
+      {"dir": "in", "name": "Damage", "type": "float32"},
+      {"dir": "in", "name": "DamageType", "type": "object:/Script/Engine.DamageType"},
+      {"dir": "in", "name": "InstigatedBy", "type": "object:/Script/Engine.Controller"},
+      {"dir": "in", "name": "DamageCauser", "type": "object:/Script/Engine.Actor"}
+     ],
+     "type": "multicast_delegate"
+    },
+    "PrimaryActorTick": {
+     "edit_only": true,
+     "type": "struct:/Script/Engine.ActorTickFunction"
+    }
+   },
+   "super": "/Script/CoreUObject.Object"
+  },
+  "/Script/Engine.BlueprintFunctionLibrary": {
+   "abstract": true,
+   "functions": {},
+   "properties": {},
+   "super": "/Script/CoreUObject.Object"
+  },
+  "/Script/Engine.GameplayStatics": {
+   "functions": {
+    "GetObjectClass": {
+     "determines_output_type": "Object",
+     "flags": ["pure", "static"],
+     "params": [
+      {"type": "object:/Script/CoreUObject.Object", "name": "Object", "dir": "in"},
+      {"type": "class:/Script/CoreUObject.Object", "name": "ReturnValue", "dir": "return"}
+     ]
+    },
+    "ApplyDamage": {
+     "flags": ["static"],
+     "params": [
+      {"dir": "in", "name": "DamagedActor", "type": "object:/Script/Engine.Actor"},
+      {"dir": "in", "name": "BaseDamage", "type": "float32"},
+      {"dir": "in", "name": "EventInstigator", "type": "object:/Script/Engine.Controller"},
+      {"dir": "in", "name": "DamageCauser", "type": "object:/Script/Engine.Actor"},
+      {"dir": "in", "name": "DamageTypeClass", "type": "class:/Script/Engine.DamageType"},
+      {"dir": "return", "name": "ReturnValue", "type": "float32"}
+     ]
+    },
+    "GetActorOfClass": {
+     "determines_output_type": "ActorClass",
+     "flags": [
+      "static",
+      "world_context"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "WorldContextObject",
+       "type": "object:/Script/CoreUObject.Object"
+      },
+      {
+       "dir": "in",
+       "name": "ActorClass",
+       "type": "class:/Script/Engine.Actor"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "object:/Script/Engine.Actor"
+      }
+     ],
+     "world_context": "WorldContextObject"
+    }
+   },
+   "properties": {},
+   "super": "/Script/Engine.BlueprintFunctionLibrary"
+  },
+  "/Script/Engine.KismetMathLibrary": {
+   "functions": {
+    "NotEqual_NameName": {"flags": ["pure", "static"], "params": [{"type": "name", "name": "A", "dir": "in"}, {"type": "name", "name": "B", "dir": "in"}, {"type": "bool", "name": "ReturnValue", "dir": "return"}]},
+    "EqualEqual_NameName": {"flags": ["pure", "static"], "params": [{"type": "name", "name": "A", "dir": "in"}, {"type": "name", "name": "B", "dir": "in"}, {"type": "bool", "name": "ReturnValue", "dir": "return"}]},
+    "And_IntInt": {"flags": ["pure", "static"], "params": [{"dir": "in", "name": "A", "type": "int"}, {"dir": "in", "name": "B", "type": "int"}, {"dir": "return", "name": "ReturnValue", "type": "int"}]},
+    "Or_IntInt": {"flags": ["pure", "static"], "params": [{"dir": "in", "name": "A", "type": "int"}, {"dir": "in", "name": "B", "type": "int"}, {"dir": "return", "name": "ReturnValue", "type": "int"}]},
+    "Conv_ByteToInt": {"flags": ["pure", "static"], "params": [{"type": "byte", "name": "InByte", "dir": "in"}, {"type": "int", "name": "ReturnValue", "dir": "return"}]},
+    "EqualEqual_ByteByte": {"flags": ["pure", "static"], "params": [{"type": "byte", "name": "A", "dir": "in"}, {"type": "byte", "name": "B", "dir": "in"}, {"type": "bool", "name": "ReturnValue", "dir": "return"}]},
+    "NotEqual_ByteByte": {"flags": ["pure", "static"], "params": [{"type": "byte", "name": "A", "dir": "in"}, {"type": "byte", "name": "B", "dir": "in"}, {"type": "bool", "name": "ReturnValue", "dir": "return"}]},
+    "EqualEqual_ObjectObject": {"flags": ["pure", "static"], "params": [{"type": "object:/Script/CoreUObject.Object", "name": "A", "dir": "in"}, {"type": "object:/Script/CoreUObject.Object", "name": "B", "dir": "in"}, {"type": "bool", "name": "ReturnValue", "dir": "return"}]},
+    "NotEqual_ObjectObject": {"flags": ["pure", "static"], "params": [{"type": "object:/Script/CoreUObject.Object", "name": "A", "dir": "in"}, {"type": "object:/Script/CoreUObject.Object", "name": "B", "dir": "in"}, {"type": "bool", "name": "ReturnValue", "dir": "return"}]},
+    "Add_DoubleDouble": {
+     "flags": [
+      "pure",
+      "static"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "A",
+       "type": "float"
+      },
+      {
+       "default": "1.000000",
+       "dir": "in",
+       "name": "B",
+       "type": "float"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "float"
+      }
+     ]
+    },
+    "Add_IntInt": {
+     "flags": [
+      "pure",
+      "static"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "A",
+       "type": "int"
+      },
+      {
+       "default": "1",
+       "dir": "in",
+       "name": "B",
+       "type": "int"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "int"
+      }
+     ]
+    },
+    "BooleanAND": {
+     "flags": [
+      "pure",
+      "static"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "A",
+       "type": "bool"
+      },
+      {
+       "dir": "in",
+       "name": "B",
+       "type": "bool"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "bool"
+      }
+     ]
+    },
+    "BooleanOR": {
+     "flags": [
+      "pure",
+      "static"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "A",
+       "type": "bool"
+      },
+      {
+       "dir": "in",
+       "name": "B",
+       "type": "bool"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "bool"
+      }
+     ]
+    },
+    "BreakVector2D": {
+     "flags": [
+      "pure",
+      "static"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "InVec",
+       "type": "struct:/Script/CoreUObject.Vector2D"
+      },
+      {
+       "dir": "out",
+       "name": "X",
+       "type": "float"
+      },
+      {
+       "dir": "out",
+       "name": "Y",
+       "type": "float"
+      }
+     ]
+    },
+    "Conv_IntToDouble": {
+     "flags": [
+      "pure",
+      "static"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "InInt",
+       "type": "int"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "float"
+      }
+     ]
+    },
+    "Divide_DoubleDouble": {
+     "flags": [
+      "pure",
+      "static"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "A",
+       "type": "float"
+      },
+      {
+       "default": "1.000000",
+       "dir": "in",
+       "name": "B",
+       "type": "float"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "float"
+      }
+     ]
+    },
+    "Divide_IntInt": {
+     "flags": [
+      "pure",
+      "static"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "A",
+       "type": "int"
+      },
+      {
+       "default": "1",
+       "dir": "in",
+       "name": "B",
+       "type": "int"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "int"
+      }
+     ]
+    },
+    "EqualEqual_BoolBool": {
+     "flags": [
+      "pure",
+      "static"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "A",
+       "type": "bool"
+      },
+      {
+       "dir": "in",
+       "name": "B",
+       "type": "bool"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "bool"
+      }
+     ]
+    },
+    "EqualEqual_DoubleDouble": {
+     "flags": [
+      "pure",
+      "static"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "A",
+       "type": "float"
+      },
+      {
+       "dir": "in",
+       "name": "B",
+       "type": "float"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "bool"
+      }
+     ]
+    },
+    "EqualEqual_IntInt": {
+     "flags": [
+      "pure",
+      "static"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "A",
+       "type": "int"
+      },
+      {
+       "dir": "in",
+       "name": "B",
+       "type": "int"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "bool"
+      }
+     ]
+    },
+    "FTrunc": {
+     "flags": [
+      "pure",
+      "static"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "A",
+       "type": "float"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "int"
+      }
+     ]
+    },
+    "GreaterEqual_DoubleDouble": {
+     "flags": [
+      "pure",
+      "static"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "A",
+       "type": "float"
+      },
+      {
+       "dir": "in",
+       "name": "B",
+       "type": "float"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "bool"
+      }
+     ]
+    },
+    "GreaterEqual_IntInt": {
+     "flags": [
+      "pure",
+      "static"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "A",
+       "type": "int"
+      },
+      {
+       "dir": "in",
+       "name": "B",
+       "type": "int"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "bool"
+      }
+     ]
+    },
+    "Greater_DoubleDouble": {
+     "flags": [
+      "pure",
+      "static"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "A",
+       "type": "float"
+      },
+      {
+       "dir": "in",
+       "name": "B",
+       "type": "float"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "bool"
+      }
+     ]
+    },
+    "Greater_IntInt": {
+     "flags": [
+      "pure",
+      "static"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "A",
+       "type": "int"
+      },
+      {
+       "dir": "in",
+       "name": "B",
+       "type": "int"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "bool"
+      }
+     ]
+    },
+    "LessEqual_DoubleDouble": {
+     "flags": [
+      "pure",
+      "static"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "A",
+       "type": "float"
+      },
+      {
+       "dir": "in",
+       "name": "B",
+       "type": "float"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "bool"
+      }
+     ]
+    },
+    "LessEqual_IntInt": {
+     "flags": [
+      "pure",
+      "static"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "A",
+       "type": "int"
+      },
+      {
+       "dir": "in",
+       "name": "B",
+       "type": "int"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "bool"
+      }
+     ]
+    },
+    "Less_DoubleDouble": {
+     "flags": [
+      "pure",
+      "static"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "A",
+       "type": "float"
+      },
+      {
+       "dir": "in",
+       "name": "B",
+       "type": "float"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "bool"
+      }
+     ]
+    },
+    "Less_IntInt": {
+     "flags": [
+      "pure",
+      "static"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "A",
+       "type": "int"
+      },
+      {
+       "dir": "in",
+       "name": "B",
+       "type": "int"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "bool"
+      }
+     ]
+    },
+    "MakeColor": {
+     "flags": [
+      "pure",
+      "static"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "R",
+       "type": "float32"
+      },
+      {
+       "dir": "in",
+       "name": "G",
+       "type": "float32"
+      },
+      {
+       "dir": "in",
+       "name": "B",
+       "type": "float32"
+      },
+      {
+       "default": "1.000000",
+       "dir": "in",
+       "name": "A",
+       "type": "float32"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "struct:/Script/CoreUObject.LinearColor"
+      }
+     ]
+    },
+    "MakeVector2D": {
+     "flags": [
+      "pure",
+      "static"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "X",
+       "type": "float"
+      },
+      {
+       "dir": "in",
+       "name": "Y",
+       "type": "float"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "struct:/Script/CoreUObject.Vector2D"
+      }
+     ]
+    },
+    "Multiply_DoubleDouble": {
+     "flags": [
+      "pure",
+      "static"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "A",
+       "type": "float"
+      },
+      {
+       "dir": "in",
+       "name": "B",
+       "type": "float"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "float"
+      }
+     ]
+    },
+    "Multiply_IntInt": {
+     "flags": [
+      "pure",
+      "static"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "A",
+       "type": "int"
+      },
+      {
+       "dir": "in",
+       "name": "B",
+       "type": "int"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "int"
+      }
+     ]
+    },
+    "NotEqual_BoolBool": {
+     "flags": [
+      "pure",
+      "static"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "A",
+       "type": "bool"
+      },
+      {
+       "dir": "in",
+       "name": "B",
+       "type": "bool"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "bool"
+      }
+     ]
+    },
+    "NotEqual_DoubleDouble": {
+     "flags": [
+      "pure",
+      "static"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "A",
+       "type": "float"
+      },
+      {
+       "dir": "in",
+       "name": "B",
+       "type": "float"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "bool"
+      }
+     ]
+    },
+    "NotEqual_IntInt": {
+     "flags": [
+      "pure",
+      "static"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "A",
+       "type": "int"
+      },
+      {
+       "dir": "in",
+       "name": "B",
+       "type": "int"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "bool"
+      }
+     ]
+    },
+    "Not_PreBool": {
+     "flags": [
+      "pure",
+      "static"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "A",
+       "type": "bool"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "bool"
+      }
+     ]
+    },
+    "Percent_FloatFloat": {
+     "flags": [
+      "pure",
+      "static"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "A",
+       "type": "float"
+      },
+      {
+       "default": "1.000000",
+       "dir": "in",
+       "name": "B",
+       "type": "float"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "float"
+      }
+     ]
+    },
+    "Percent_IntInt": {
+     "flags": [
+      "pure",
+      "static"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "A",
+       "type": "int"
+      },
+      {
+       "default": "1",
+       "dir": "in",
+       "name": "B",
+       "type": "int"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "int"
+      }
+     ]
+    },
+    "Sin": {
+     "flags": [
+      "pure",
+      "static"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "A",
+       "type": "float"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "float"
+      }
+     ]
+    },
+    "Subtract_DoubleDouble": {
+     "flags": [
+      "pure",
+      "static"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "A",
+       "type": "float"
+      },
+      {
+       "default": "1.000000",
+       "dir": "in",
+       "name": "B",
+       "type": "float"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "float"
+      }
+     ]
+    },
+    "Subtract_IntInt": {
+     "flags": [
+      "pure",
+      "static"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "A",
+       "type": "int"
+      },
+      {
+       "default": "1",
+       "dir": "in",
+       "name": "B",
+       "type": "int"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "int"
+      }
+     ]
+    }
+   },
+   "properties": {},
+   "super": "/Script/Engine.BlueprintFunctionLibrary"
+  },
+  "/Script/Engine.KismetStringLibrary": {
+   "functions": {
+    "Conv_StringToName": {"flags": ["pure", "static"], "params": [{"type": "string", "name": "InString", "dir": "in"}, {"type": "name", "name": "ReturnValue", "dir": "return"}]},
+    "Concat_StrStr": {
+     "flags": [
+      "pure",
+      "static"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "A",
+       "type": "string"
+      },
+      {
+       "dir": "in",
+       "name": "B",
+       "type": "string"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "string"
+      }
+     ]
+    },
+    "Conv_BoolToString": {
+     "flags": [
+      "pure",
+      "static"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "InBool",
+       "type": "bool"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "string"
+      }
+     ]
+    },
+    "Conv_DoubleToString": {
+     "flags": [
+      "pure",
+      "static"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "InDouble",
+       "type": "float"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "string"
+      }
+     ]
+    },
+    "Conv_IntToString": {
+     "flags": [
+      "pure",
+      "static"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "InInt",
+       "type": "int"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "string"
+      }
+     ]
+    },
+    "Conv_NameToString": {
+     "flags": [
+      "pure",
+      "static"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "InName",
+       "type": "name"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "string"
+      }
+     ]
+    },
+    "Conv_ObjectToString": {
+     "flags": [
+      "pure",
+      "static"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "InObj",
+       "type": "object:/Script/CoreUObject.Object"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "string"
+      }
+     ]
+    },
+    "EqualEqual_StrStr": {
+     "flags": [
+      "pure",
+      "static"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "A",
+       "type": "string"
+      },
+      {
+       "dir": "in",
+       "name": "B",
+       "type": "string"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "bool"
+      }
+     ]
+    },
+    "NotEqual_StrStr": {
+     "flags": [
+      "pure",
+      "static"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "A",
+       "type": "string"
+      },
+      {
+       "dir": "in",
+       "name": "B",
+       "type": "string"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "bool"
+      }
+     ]
+    }
+   },
+   "properties": {},
+   "super": "/Script/Engine.BlueprintFunctionLibrary"
+  },
+  "/Script/Engine.KismetSystemLibrary": {
+   "functions": {
+    "Delay": {
+     "flags": ["static", "latent", "world_context"],
+     "params": [
+      {"type": "object:/Script/CoreUObject.Object", "name": "WorldContextObject", "dir": "in"},
+      {"type": "float32", "name": "Duration", "dir": "in"},
+      {"type": "struct:/Script/Engine.LatentActionInfo", "name": "LatentInfo", "dir": "in"}
+     ],
+     "world_context": "WorldContextObject"
+    },
+    "IsValidClass": {
+     "flags": ["pure", "static"],
+     "params": [
+      {"type": "class:/Script/CoreUObject.Object", "name": "Class", "dir": "in"},
+      {"type": "bool", "name": "ReturnValue", "dir": "return"}
+     ]
+    },
+    "DoesImplementInterface": {
+     "flags": ["pure", "static"],
+     "params": [
+      {"type": "object:/Script/CoreUObject.Object", "name": "TestObject", "dir": "in"},
+      {"type": "class:/Script/CoreUObject.Interface", "name": "Interface", "dir": "in"},
+      {"type": "bool", "name": "ReturnValue", "dir": "return"}
+     ]
+    },
+    "Conv_InterfaceToObject": {
+     "flags": ["pure", "static"],
+     "params": [
+      {"type": "interface:/Script/CoreUObject.Interface", "name": "Interface", "dir": "in", "wired": true},
+      {"type": "object:/Script/CoreUObject.Object", "name": "ReturnValue", "dir": "return"}
+     ]
+    },
+    "Conv_ClassToSoftClassReference": {
+     "flags": ["pure", "static", "internal"],
+     "params": [
+      {"type": "class:/Script/CoreUObject.Object", "name": "Class", "dir": "in", "wired": true},
+      {"type": "softclass:/Script/CoreUObject.Object", "name": "ReturnValue", "dir": "return"}
+     ]
+    },
+    "Conv_SoftClassReferenceToString": {
+     "flags": ["pure", "static"],
+     "params": [
+      {"type": "softclass:/Script/CoreUObject.Object", "name": "SoftClassReference", "dir": "in"},
+      {"type": "string", "name": "ReturnValue", "dir": "return"}
+     ]
+    },
+    "LoadAsset_Blocking": {
+     "flags": ["static"],
+     "determines_output_type": "Asset",
+     "params": [
+      {"type": "softobject:/Script/CoreUObject.Object", "name": "Asset", "dir": "in"},
+      {"type": "object:/Script/CoreUObject.Object", "name": "ReturnValue", "dir": "return"}
+     ]
+    },
+    "LoadClassAsset_Blocking": {
+     "flags": ["static"],
+     "determines_output_type": "AssetClass",
+     "params": [
+      {"type": "softclass:/Script/CoreUObject.Object", "name": "AssetClass", "dir": "in"},
+      {"type": "class:/Script/CoreUObject.Object", "name": "ReturnValue", "dir": "return"}
+     ]
+    },
+    "IsValidSoftObjectReference": {
+     "flags": ["pure", "static"],
+     "params": [
+      {"type": "softobject:/Script/CoreUObject.Object", "name": "SoftObjectReference", "dir": "in", "wired": true},
+      {"type": "bool", "name": "ReturnValue", "dir": "return"}
+     ]
+    },
+    "IsValidSoftClassReference": {
+     "flags": ["pure", "static"],
+     "params": [
+      {"type": "softclass:/Script/CoreUObject.Object", "name": "SoftClassReference", "dir": "in", "wired": true},
+      {"type": "bool", "name": "ReturnValue", "dir": "return"}
+     ]
+    },
+    "PrintString": {
+     "flags": [
+      "static",
+      "world_context"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "WorldContextObject",
+       "type": "object:/Script/CoreUObject.Object"
+      },
+      {
+       "default": "Hello",
+       "dir": "in",
+       "name": "InString",
+       "type": "string"
+      },
+      {
+       "default": "true",
+       "dir": "in",
+       "name": "bPrintToScreen",
+       "type": "bool"
+      },
+      {
+       "default": "true",
+       "dir": "in",
+       "name": "bPrintToLog",
+       "type": "bool"
+      },
+      {
+       "default": "(R=0.000000,G=0.660000,B=1.000000,A=1.000000)",
+       "dir": "in",
+       "name": "TextColor",
+       "type": "struct:/Script/CoreUObject.LinearColor"
+      },
+      {
+       "default": "2.000000",
+       "dir": "in",
+       "name": "Duration",
+       "type": "float32"
+      },
+      {
+       "default": "None",
+       "dir": "in",
+       "name": "Key",
+       "type": "name"
+      }
+     ],
+     "world_context": "WorldContextObject"
+    },
+    "K2_SetTimerDelegate": {
+     "flags": ["static"],
+     "params": [
+      {"dir": "in", "name": "Delegate", "signature": [], "type": "delegate:/Script/Engine.TimerDynamicDelegate__DelegateSignature"},
+      {"dir": "in", "name": "Time", "type": "float32"},
+      {"dir": "in", "name": "bLooping", "type": "bool"},
+      {"default": "false", "dir": "in", "name": "bMaxOncePerFrame", "type": "bool"},
+      {"default": "0.000000", "dir": "in", "name": "InitialStartDelay", "type": "float32"},
+      {"default": "0.000000", "dir": "in", "name": "InitialStartDelayVariance", "type": "float32"},
+      {"dir": "return", "name": "ReturnValue", "type": "struct:/Script/Engine.TimerHandle"}
+     ]
+    }
+   },
+   "properties": {},
+   "super": "/Script/Engine.BlueprintFunctionLibrary"
+  },
+  "/Script/Test.Judges": {
+   "super": "/Script/Engine.BlueprintFunctionLibrary",
+   "functions": {
+    "Judge": {
+     "flags": ["static"],
+     "params": [
+      {"dir": "in", "name": "Judge", "type": "delegate:/Script/Test.Judges:OnJudge__DelegateSignature", "signature": [
+       {"dir": "in", "name": "Score", "type": "int"},
+       {"const_ref": true, "dir": "in", "name": "Where", "type": "struct:/Script/CoreUObject.Vector2D"},
+       {"dir": "return", "name": "ReturnValue", "type": "bool"}
+      ]}
+     ]
+    },
+    "Watch": {
+     "flags": ["static"],
+     "params": [
+      {"dir": "in", "name": "Watcher", "type": "delegate:/Script/Test.Judges:OnSingle__DelegateSignature", "signature": [
+       {"dir": "in", "name": "Value", "type": "float32"}
+      ]}
+     ]
+    },
+    "Hold": {
+     "flags": ["static"],
+     "params": [
+      {"dir": "in", "name": "Holder", "type": "delegate:/Script/Test.Judges:OnDouble__DelegateSignature", "signature": [
+       {"dir": "in", "name": "Value", "type": "float"}
+      ]}
+     ]
+    }
+   }
+  },
+  "/Script/Engine.KismetTextLibrary": {
+   "functions": {
+    "Conv_TextToString": {
+     "flags": [
+      "pure",
+      "static"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "InText",
+       "type": "text"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "string"
+      }
+     ]
+    }
+   },
+   "properties": {},
+   "super": "/Script/Engine.BlueprintFunctionLibrary"
+  },
+  "/Script/Test.Checker": {
+   "super": "/Script/CoreUObject.Object",
+   "editor_only": true,
+   "abstract": true,
+   "functions": {
+    "K2_Check": {
+     "flags": [
+      "event",
+      "not_callable"
+     ],
+     "params": [
+      {
+       "dir": "in",
+       "name": "InAsset",
+       "type": "object:/Script/CoreUObject.Object"
+      },
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "bool"
+      }
+     ]
+    },
+    "Fail": {
+     "flags": [],
+     "params": [
+      {
+       "dir": "in",
+       "name": "InAsset",
+       "type": "object:/Script/CoreUObject.Object"
+      }
+     ]
+    }
+   }
+  },
+  "/Script/Engine.EngineSubsystem": {
+   "super": "/Script/CoreUObject.Object",
+   "abstract": true
+  },
+  "/Script/Test.ThingSubsystem": {
+   "super": "/Script/Engine.EngineSubsystem",
+   "editor_only": true,
+   "functions": {
+    "Count": {
+     "flags": [
+      "pure",
+      "const"
+     ],
+     "params": [
+      {
+       "dir": "return",
+       "name": "ReturnValue",
+       "type": "int"
+      }
+     ]
+    }
+   }
+  },
+  "/Script/Engine.ActorComponent": {
+   "super": "/Script/CoreUObject.Object",
+   "functions": {
+    "ToggleActive": {"flags": [], "params": []},
+    "IsActive": {"flags": ["pure", "const"], "params": [{"dir": "return", "name": "ReturnValue", "type": "bool"}]}
+   }
+  },
+  "/Script/Engine.SceneComponent": {
+   "super": "/Script/Engine.ActorComponent"
+  },
+  "/Game/Lib/Copies.Copies_C": {
+   "super": "/Script/Engine.ActorComponent",
+   "properties": {
+    "Id": {
+     "type": "string"
+    },
+    "Running": {
+     "type": "bool"
+    },
+    "OnRun": {
+     "type": "multicast_delegate",
+     "signature": [
+      {
+       "name": "Copy",
+       "type": "int"
+      }
+     ]
+    }
+   },
+   "functions": {
+    "Take": {
+     "flags": [],
+     "params": [
+      {"dir": "in", "name": "Amount", "type": "float"}
+     ]
+    }
+   }
+  },
+  "/Script/Engine.DamageType": {
+   "super": "/Script/CoreUObject.Object"
+  },
+  "/Script/Engine.Controller": {
+   "super": "/Script/Engine.Actor"
+  },
+  "/Game/Game/Pieces.Pieces_C": {
+   "super": "/Script/Engine.ActorComponent"
+  },
+  "/Script/CoreUObject.Interface": {
+   "super": "/Script/CoreUObject.Object",
+   "abstract": true,
+   "interface": true
+  },
+  "/Script/MovieScene.MovieSceneEasingFunction": {
+   "super": "/Script/CoreUObject.Interface",
+   "abstract": true,
+   "interface": true,
+   "functions": {
+    "OnEvaluate": {
+     "flags": ["pure", "const", "event"],
+     "params": [
+      {"type": "float32", "name": "Interp", "dir": "in"},
+      {"type": "float32", "name": "ReturnValue", "dir": "return"}
+     ]
+    }
+   }
+  },
+  "/Script/DataflowSimulation.DataflowSimulationActor": {
+   "super": "/Script/CoreUObject.Interface",
+   "abstract": true,
+   "interface": true,
+   "functions": {
+    "PreDataflowSimulationTick": {
+     "flags": ["event"],
+     "params": [
+      {"type": "float32", "name": "SimulationTime", "dir": "in"},
+      {"type": "float32", "name": "DeltaTime", "dir": "in"}
+     ]
+    },
+    "PostDataflowSimulationTick": {
+     "flags": ["event"],
+     "params": [
+      {"type": "float32", "name": "SimulationTime", "dir": "in"},
+      {"type": "float32", "name": "DeltaTime", "dir": "in"}
+     ]
+    }
+   }
+  },
+  "/Script/Test.Sealed": {
+   "super": "/Script/CoreUObject.Interface",
+   "abstract": true,
+   "interface": true,
+   "not_implementable": true
+  }
+ },
+ "enums": {
+  "/Script/Engine.ETickingGroup": ["TG_PrePhysics", "TG_StartPhysics", "TG_DuringPhysics", "TG_EndPhysics", "TG_PostPhysics", "TG_PostUpdateWork", "TG_LastDemotable", "TG_NewlySpawned"]
+ },
+ "structs": {
+  "/Script/CoreUObject.PerPlatformInt": {
+   "fields": {
+    "Default": {
+     "type": "int",
+     "read_only": true
+    },
+    "PerPlatform": {
+     "type": "map<name,int>",
+     "edit_only": true
+    }
+   }
+  },
+  "/Script/CoreUObject.LinearColor": {
+   "fields": {
+    "A": {
+     "type": "float32"
+    },
+    "B": {
+     "type": "float32"
+    },
+    "G": {
+     "type": "float32"
+    },
+    "R": {
+     "type": "float32"
+    }
+   }
+  },
+  "/Script/CoreUObject.Vector2D": {
+   "fields": {
+    "X": {
+     "type": "float"
+    },
+    "Y": {
+     "type": "float"
+    }
+   },
+   "native_break": "/Script/Engine.KismetMathLibrary.BreakVector2D",
+   "native_make": "/Script/Engine.KismetMathLibrary.MakeVector2D"
+  },
+  "/Script/Engine.ActorTickFunction": {
+   "fields": {
+    "TickInterval": {
+     "edit_only": true,
+     "type": "float32"
+    },
+    "bTickEvenWhenPaused": {
+     "edit_only": true,
+     "type": "bool"
+    }
+   }
+  },
+  "/Script/Engine.LODMappingData": {
+   "fields": {
+    "Mapping": {"type": "array<int>"}
+   }
+  },
+  "/Script/Engine.CanvasUVTri": {
+   "fields": {
+    "V0_Color": {
+     "type": "struct:/Script/CoreUObject.LinearColor"
+    },
+    "V0_Pos": {
+     "type": "struct:/Script/CoreUObject.Vector2D"
+    },
+    "V0_UV": {
+     "type": "struct:/Script/CoreUObject.Vector2D"
+    },
+    "V1_Color": {
+     "type": "struct:/Script/CoreUObject.LinearColor"
+    },
+    "V1_Pos": {
+     "type": "struct:/Script/CoreUObject.Vector2D"
+    },
+    "V1_UV": {
+     "type": "struct:/Script/CoreUObject.Vector2D"
+    },
+    "V2_Color": {
+     "type": "struct:/Script/CoreUObject.LinearColor"
+    },
+    "V2_Pos": {
+     "type": "struct:/Script/CoreUObject.Vector2D"
+    },
+    "V2_UV": {
+     "type": "struct:/Script/CoreUObject.Vector2D"
+    }
+   }
+  }
+ },
+  "settings": {
+    "instanced_class_paths": ["/Game/Lib"]
+  }
+}

@@ -1,0 +1,7 @@
+// Something that can be used. An interface's source holds the interface alone, its functions
+// without bodies, which the Blueprints that implement it give them.
+interface BPI_LoomUsable at /Game/Loom/Examples/usable/BPI_LoomUsable {
+    // Uses it, as many times as asked.
+    fn Use(by: Actor, times: int)
+    fn CanUse(by: Actor) -> bool
+}

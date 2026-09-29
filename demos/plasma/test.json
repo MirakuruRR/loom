@@ -1,0 +1,41 @@
+{
+ "blueprint": "/Game/Mods/PK_LoomPlasma/BP_MapLoad",
+ "cases": [
+  {
+   "name": "a grid of 4 by 3 is 12 cells",
+   "set": {
+    "Columns": "4",
+    "Rows": "3"
+   },
+   "call": "Fill",
+   "expect": {
+    "Cells": "12"
+   }
+  },
+  {
+   "name": "the default grid",
+   "set": {
+    "Columns": "40",
+    "Rows": "25"
+   },
+   "call": "Fill",
+   "expect": {
+    "Cells": "1000"
+   }
+  },
+  {
+   "name": "what the mod log says",
+   "set": {
+    "Frames": "7",
+    "Cells": "12",
+    "Columns": "4",
+    "Rows": "3",
+    "DrawMs": "1.5"
+   },
+   "call": "Status",
+   "expect": {
+    "return": "PK_LoomPlasma: frame 7, 12 cells, 4 by 3, drawing takes 1.5 ms"
+   }
+  }
+ ]
+}

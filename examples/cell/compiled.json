@@ -1,0 +1,7 @@
+{
+  "version": 0,
+  "ops": [
+    {"op":"struct","path":"/Game/Loom/Examples/cell/S_LoomCell","source":"examples/cell/S_LoomCell.lm","fields":[{"name":"X","type":"int"},{"name":"Y","type":"int","default":"1","description":"How far up. A field starts out zero, or at its default."},{"name":"Tool","type":"enum:/Game/Loom/Examples/tool/E_LoomTool.E_LoomTool","default":"Saw"},{"name":"Tags","type":"array<string>"}],"description":"A place on a grid. A struct's source holds the struct alone, and every other source can use it."},
+    {"op":"save"}
+  ]
+}

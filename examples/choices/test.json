@@ -1,0 +1,19 @@
+{
+  "blueprint": "/Game/Loom/Examples/choices/BP_LoomChoices",
+  "cases": [
+    {"name": "the side asked for is computed", "call": "Chosen", "set": {"Calls": "0"}, "args": {"ask": "true"}, "expect": {"return": "1", "Calls": "1"}},
+    {"name": "the side not asked for is not", "call": "Chosen", "set": {"Calls": "0"}, "args": {"ask": "false"}, "expect": {"return": "0", "Calls": "0"}},
+    {"name": "an item read only when there is one", "call": "First", "set": {"Items": "()"}, "expect": {"return": "-1"}},
+    {"name": "the item, when there is one", "call": "First", "set": {"Items": "(7,8)"}, "expect": {"return": "7"}},
+    {"name": "a whole number taken as a float", "call": "Speed", "args": {"running": "true"}, "expect": {"return": "600.000000"}},
+    {"name": "the float", "call": "Speed", "args": {"running": "false"}, "expect": {"return": "300.500000"}},
+    {"name": "else if", "call": "Size", "args": {"n": "1"}, "expect": {"return": "one"}},
+    {"name": "else", "call": "Size", "args": {"n": "5"}, "expect": {"return": "many"}},
+    {"name": "a match's arm listing two values, by the second", "call": "InGroup", "set": {"Group": "TG_StartPhysics"}, "expect": {"return": "1"}},
+    {"name": "a match's arm listing one value", "call": "InGroup", "set": {"Group": "TG_PostPhysics"}, "expect": {"return": "2"}},
+    {"name": "a value no arm lists", "call": "InGroup", "set": {"Group": "TG_DuringPhysics"}, "expect": {"return": "0"}},
+    {"name": "a match expression's arm", "call": "Named", "set": {"Calls": "0"}, "args": {"n": "3"}, "expect": {"return": "few", "Calls": "0"}},
+    {"name": "a match expression's arm that calls", "call": "Named", "set": {"Calls": "0"}, "args": {"n": "-1"}, "expect": {"return": "1", "Calls": "1"}},
+    {"name": "a match expression's else", "call": "Named", "set": {"Calls": "0"}, "args": {"n": "9"}, "expect": {"return": "many", "Calls": "0"}}
+  ]
+}

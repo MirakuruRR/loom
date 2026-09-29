@@ -1,0 +1,7 @@
+{
+  "blueprint": "/Game/Loom/Examples/grid/BP_LoomGrid",
+  "cases": [
+    {"name": "a small grid", "call": "Fill", "args": {"width": "3", "height": "2", "time": "0.0"}, "expect": {"Cells": "6"}},
+    {"name": "the plasma's grid, 10 times", "call": "Fill", "args": {"width": "80", "height": "50", "time": "0.0"}, "repeat": 10, "expect": {"Cells": "4000"}}
+  ]
+}

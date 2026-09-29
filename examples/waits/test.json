@@ -1,0 +1,6 @@
+{
+  "blueprint": "/Game/Loom/Examples/waits/BP_LoomWaits",
+  "cases": [
+    {"name": "a handler that waits, laid out in the event graph, runs up to its return", "call": "ReceiveTick", "set": {"Ticks": "0", "Seconds": "1", "Waited": "0"}, "args": {"DeltaSeconds": "2"}, "expect": {"Ticks": "1", "Seconds": "3.000000", "Waited": "0"}}
+  ]
+}

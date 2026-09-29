@@ -1,0 +1,11 @@
+{
+  "blueprint": "/Game/Loom/Examples/calls/BP_LoomCalls",
+  "cases": [
+    {"name": "returns and ifs", "call": "Run", "args": {"n": "5"}, "expect": {"Result": "28"}},
+    {"name": "clamp below", "call": "Run", "args": {"n": "-2"}, "expect": {"Result": "4"}},
+    {"name": "native property and strings", "call": "Run", "args": {"n": "2"}, "expect": {"CustomTimeDilation": "0.500000", "Label": "n=2 dilation=0.5"}},
+    {"name": "a call in a loop condition runs every pass", "call": "Run", "args": {"n": "4"}, "expect": {"Steps": "5"}},
+    {"name": "a function called directly", "call": "Clamp", "args": {"x": "9", "lo": "0", "hi": "3"}, "expect": {"return": "3"}},
+    {"name": "a class as a string is its path", "call": "Where", "args": {}, "expect": {"return": "/Game/Loom/Examples/calls/BP_LoomCalls.BP_LoomCalls_C"}}
+  ]
+}

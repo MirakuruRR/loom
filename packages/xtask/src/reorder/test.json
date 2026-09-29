@@ -1,0 +1,6 @@
+{
+  "blueprint": "/Game/Loom/Reorder/BP_Order",
+  "cases": [
+    {"name": "a value held in memory while its enum was reordered, then saved", "call": "IsB", "expect": {"return": "true"}}
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "blueprint": "/Game/Loom/Examples/sets/BP_LoomSets",
+  "cases": [
+    {"name": "a set walked from its default", "call": "Walk", "expect": {"Count": "2", "Seen": "ab"}},
+    {"name": "items added, repeated and removed", "call": "Change", "expect": {"Count": "2", "Has": "true"}},
+    {"name": "objects compared, with none", "call": "Objects", "expect": {"Same": "true"}}
+  ]
+}

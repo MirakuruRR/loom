@@ -1,0 +1,27 @@
+blueprint BP_LoomParams : Actor at /Game/Loom/Examples/params/BP_LoomParams
+
+// A call may leave out the last parameters, which then take their defaults.
+fn Label(name: string, prefix: string = "the ", suffix: string = "!") -> string {
+    return prefix + name + suffix
+}
+
+fn Named() -> string {
+    return Label("door")
+}
+
+fn Prefixed() -> string {
+    return Label("door", "a ")
+}
+
+fn Given() -> string {
+    return Label("door", "a ", "?")
+}
+
+// Another Blueprint's function, its defaults taken as its own calls take them.
+fn Library() -> float {
+    return BPL_LoomHits.Hit(3)
+}
+
+fn LibraryGiven() -> float {
+    return BPL_LoomHits.Hit(3, 1, 0.0)
+}

@@ -1,0 +1,3 @@
+blueprint BP_Hand : Actor at /Game/Loom/Foreign/BP_Hand
+
+var Grip: int = 0

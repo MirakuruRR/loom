@@ -1,0 +1,10 @@
+{
+  "version": 0,
+  "ops": [
+    {"op":"blueprint","path":"/Game/Loom/Examples/usable/BPI_LoomUsable","parent":"/Script/CoreUObject.Interface","source":"examples/usable/BPI_LoomUsable.lm"},
+    {"op":"function","name":"Use","params":[{"name":"by","type":"object:/Script/Engine.Actor"},{"name":"times","type":"int"}],"description":"Uses it, as many times as asked."},
+    {"op":"function","name":"CanUse","params":[{"name":"by","type":"object:/Script/Engine.Actor"}],"returns":[{"name":"ReturnValue","type":"bool"}]},
+    {"op":"compile"},
+    {"op":"save"}
+  ]
+}

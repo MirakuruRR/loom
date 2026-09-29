@@ -1,0 +1,1033 @@
+================================================================================
+Header and items
+================================================================================
+
+blueprint BPL_X : BlueprintFunctionLibrary at /Game/Things/BPL_X
+category "X|Things"
+var Count: int = 0
+widget Score: TextBlock at 380 140 size 420 40
+on ReceiveTick(dt: float) {
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (header
+    (identifier)
+    (type_identifier
+      (identifier))
+    (path))
+  (category_declaration
+    (string))
+  (variable_declaration
+    (identifier)
+    (type_identifier
+      (identifier))
+    (integer))
+  (widget_declaration
+    (identifier)
+    (type_identifier
+      (identifier))
+    (integer)
+    (integer)
+    (integer)
+    (integer))
+  (event_handler
+    (identifier)
+    (parameters
+      (parameter
+        (identifier)
+        (type_identifier
+          (identifier))))
+    (block)))
+
+================================================================================
+A function with a ref parameter and a return type
+================================================================================
+
+blueprint B : Actor at /Game/B
+fn Push(xs: ref array<int>, n: int) -> bool {
+    xs.Add(n)
+    return true
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (header
+    (identifier)
+    (type_identifier
+      (identifier))
+    (path))
+  (function_declaration
+    (identifier)
+    (parameters
+      (parameter
+        (identifier)
+        (array_type
+          (type_identifier
+            (identifier))))
+      (parameter
+        (identifier)
+        (type_identifier
+          (identifier))))
+    (type_identifier
+      (identifier))
+    (block
+      (expression_statement
+        (method_call
+          (identifier)
+          (identifier)
+          (arguments
+            (identifier))))
+      (return_statement
+        (boolean)))))
+
+================================================================================
+Bitwise binds tighter than comparison
+================================================================================
+
+blueprint B : Actor at /Game/B
+fn F(flags: int) -> bool {
+    return flags & 32 != 0
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (header
+    (identifier)
+    (type_identifier
+      (identifier))
+    (path))
+  (function_declaration
+    (identifier)
+    (parameters
+      (parameter
+        (identifier)
+        (type_identifier
+          (identifier))))
+    (type_identifier
+      (identifier))
+    (block
+      (return_statement
+        (binary_expression
+          (binary_expression
+            (identifier)
+            (integer))
+          (integer))))))
+
+================================================================================
+A struct made with named fields, and a call
+================================================================================
+
+blueprint B : Actor at /Game/B
+fn F() {
+    let a = Vector2D(X: 1.0, Y: 2.0)
+    Draw(a)
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (header
+    (identifier)
+    (type_identifier
+      (identifier))
+    (path))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (block
+      (let_statement
+        (identifier)
+        (make
+          (identifier)
+          (field_initializer
+            (identifier)
+            (float))
+          (field_initializer
+            (identifier)
+            (float))))
+      (expression_statement
+        (call
+          (identifier)
+          (arguments
+            (identifier)))))))
+
+================================================================================
+Statements and an array across lines
+================================================================================
+
+blueprint B : Actor at /Game/B
+fn F() {
+    let xs: array<int> = [
+        0x0F00, 0x2222,
+        1, 2,
+    ]
+    while xs.Length() > 0 {
+        xs[0] = -1
+    }
+    if !done {
+        return
+    } else if x == 1 {
+        x = 2
+    } else {
+        self.K2_DestroyActor()
+    }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (header
+    (identifier)
+    (type_identifier
+      (identifier))
+    (path))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (block
+      (let_statement
+        (identifier)
+        (array_type
+          (type_identifier
+            (identifier)))
+        (array
+          (integer)
+          (integer)
+          (integer)
+          (integer)))
+      (while_statement
+        (binary_expression
+          (method_call
+            (identifier)
+            (identifier)
+            (arguments))
+          (integer))
+        (block
+          (assignment
+            (index_expression
+              (identifier)
+              (integer))
+            (unary_expression
+              (integer)))))
+      (if_statement
+        (unary_expression
+          (identifier))
+        (block
+          (return_statement))
+        (if_statement
+          (binary_expression
+            (identifier)
+            (integer))
+          (block
+            (assignment
+              (identifier)
+              (integer)))
+          (block
+            (expression_statement
+              (method_call
+                (identifier)
+                (identifier)
+                (arguments)))))))))
+
+================================================================================
+Editable variables and dispatchers
+================================================================================
+
+blueprint C : ActorComponent at /Game/C
+editable var Id: string
+dispatcher Done(score: int)
+fn F() {
+    Done.broadcast(1)
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (header
+    name: (identifier)
+    parent: (type_identifier
+      (identifier))
+    path: (path))
+  (variable_declaration
+    name: (identifier)
+    type: (type_identifier
+      (identifier)))
+  (dispatcher_declaration
+    name: (identifier)
+    parameters: (parameters
+      (parameter
+        name: (identifier)
+        type: (type_identifier
+          (identifier)))))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameters)
+    body: (block
+      (expression_statement
+        (method_call
+          object: (identifier)
+          method: (identifier)
+          arguments: (arguments
+            (integer)))))))
+
+================================================================================
+Maps, soft references and for loops
+================================================================================
+
+blueprint B : Actor at /Game/B
+var M: map<string, soft<class<Actor>>> = {
+    "a": /Game/A.A_C,
+}
+fn F() {
+    for k, v in M {
+        let c = v.load()
+    }
+    for x in [1] {
+    }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (header
+    name: (identifier)
+    parent: (type_identifier
+      (identifier))
+    path: (path))
+  (variable_declaration
+    name: (identifier)
+    type: (map_type
+      key: (type_identifier
+        (identifier))
+      value: (soft_type
+        target: (class_type
+          class: (type_identifier
+            (identifier)))))
+    value: (map
+      (map_entry
+        key: (string)
+        value: (path))))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameters)
+    body: (block
+      (for_statement
+        name: (identifier)
+        name: (identifier)
+        items: (identifier)
+        body: (block
+          (let_statement
+            name: (identifier)
+            value: (method_call
+              object: (identifier)
+              method: (identifier)
+              arguments: (arguments)))))
+      (for_statement
+        name: (identifier)
+        items: (array
+          (integer))
+        body: (block)))))
+
+================================================================================
+A root widget with fields, and sets
+================================================================================
+
+blueprint W : UserWidget at /Game/W
+widget Field: EditableTextBox(
+    HintText: "Search",
+    WidgetStyle: EditableTextBoxStyle(
+        Padding: Margin(Left: 14, Top: 4),
+    ),
+)
+var Seen: set<name>
+on Field.OnTextChanged(typed: text) {
+    Seen.Add("a")
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (header
+    name: (identifier)
+    parent: (type_identifier
+      (identifier))
+    path: (path))
+  (widget_declaration
+    name: (identifier)
+    class: (type_identifier
+      (identifier))
+    (field_initializers
+      (field_initializer
+        name: (identifier)
+        value: (string))
+      (field_initializer
+        name: (identifier)
+        value: (make
+          struct: (identifier)
+          (field_initializer
+            name: (identifier)
+            value: (make
+              struct: (identifier)
+              (field_initializer
+                name: (identifier)
+                value: (integer))
+              (field_initializer
+                name: (identifier)
+                value: (integer))))))))
+  (variable_declaration
+    name: (identifier)
+    type: (set_type
+      element: (type_identifier
+        (identifier))))
+  (event_handler
+    component: (identifier)
+    event: (identifier)
+    parameters: (parameters
+      (parameter
+        name: (identifier)
+        type: (type_identifier
+          (identifier))))
+    body: (block
+      (expression_statement
+        (method_call
+          object: (identifier)
+          method: (identifier)
+          arguments: (arguments
+            (string)))))))
+
+================================================================================
+Widgets inside widgets, with slot fields
+================================================================================
+
+blueprint W : UserWidget at /Game/W
+widget Toggle: Button {
+    widget Size: SizeBox slot(Padding: Margin(Left: 4)) {
+        widget Eye: Image(ColorAndOpacity: "#ffffff")
+    }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (header
+    (identifier)
+    (type_identifier
+      (identifier))
+    (path))
+  (widget_declaration
+    (identifier)
+    (type_identifier
+      (identifier))
+    (widget_block
+      (widget_declaration
+        (identifier)
+        (type_identifier
+          (identifier))
+        (field_initializers
+          (field_initializer
+            (identifier)
+            (make
+              (identifier)
+              (field_initializer
+                (identifier)
+                (integer)))))
+        (widget_block
+          (widget_declaration
+            (identifier)
+            (type_identifier
+              (identifier))
+            (field_initializers
+              (field_initializer
+                (identifier)
+                (string)))))))))
+
+================================================================================
+Class defaults
+================================================================================
+
+blueprint B : Actor at /Game/B
+default InitialLifeSpan = 5.0
+default PrimaryActorTick.bTickEvenWhenPaused = true
+default Tags = BP_Other.Tags
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (header
+    (identifier)
+    (type_identifier
+      (identifier))
+    (path))
+  (default_declaration
+    (identifier)
+    (float))
+  (default_declaration
+    (identifier)
+    (identifier)
+    (boolean))
+  (default_declaration
+    (identifier)
+    (member_expression
+      (identifier)
+      (identifier))))
+
+================================================================================
+Use
+================================================================================
+
+blueprint BP_Shop : Actor at /Game/Shop/BP_Shop
+use /Game/Libs/Inventory
+var Stock: BP_Inventory
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (header
+    name: (identifier)
+    parent: (type_identifier
+      (identifier))
+    path: (path))
+  (use_declaration
+    folder: (path))
+  (variable_declaration
+    name: (identifier)
+    type: (type_identifier
+      (identifier))))
+
+================================================================================
+Break and continue
+================================================================================
+
+blueprint B : Actor at /Game/B
+fn F(n: int) {
+    while n > 0 {
+        if n == 3 {
+            continue
+        }
+        break
+    }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (header
+    (identifier)
+    (type_identifier
+      (identifier))
+    (path))
+  (function_declaration
+    (identifier)
+    (parameters
+      (parameter
+        (identifier)
+        (type_identifier
+          (identifier))))
+    (block
+      (while_statement
+        (binary_expression
+          (identifier)
+          (integer))
+        (block
+          (if_statement
+            (binary_expression
+              (identifier)
+              (integer))
+            (block
+              (continue_statement)))
+          (break_statement))))))
+
+================================================================================
+Implements
+================================================================================
+
+blueprint BP_Door : Actor at /Game/Door/BP_Door
+implements BPI_Interactable
+implements /Game/Door/BPI_Lockable.BPI_Lockable_C
+on Interact(by: Actor) {
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (header
+    name: (identifier)
+    parent: (type_identifier
+      (identifier))
+    path: (path))
+  (implements_declaration
+    interface: (type_identifier
+      (identifier)))
+  (implements_declaration
+    interface: (path))
+  (event_handler
+    event: (identifier)
+    parameters: (parameters
+      (parameter
+        name: (identifier)
+        type: (type_identifier
+          (identifier))))
+    body: (block)))
+
+================================================================================
+If expressions
+================================================================================
+
+blueprint BP_Door : Actor at /Game/Door/BP_Door
+fn F(ok: bool) -> int {
+    if ok {
+        Open()
+    }
+    return if ok { 1 } else if !ok { 2 } else { 3 }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (header
+    (identifier)
+    (type_identifier
+      (identifier))
+    (path))
+  (function_declaration
+    (identifier)
+    (parameters
+      (parameter
+        (identifier)
+        (type_identifier
+          (identifier))))
+    (type_identifier
+      (identifier))
+    (block
+      (if_statement
+        (identifier)
+        (block
+          (expression_statement
+            (call
+              (identifier)
+              (arguments)))))
+      (return_statement
+        (if_expression
+          (identifier)
+          (integer)
+          (if_expression
+            (unary_expression
+              (identifier))
+            (integer)
+            (integer)))))))
+
+================================================================================
+Match
+================================================================================
+
+blueprint BP_Door : Actor at /Game/Door/BP_Door
+fn F(n: int) -> int {
+    match n {
+        1, 2 {
+            Open()
+        }
+        else {
+        }
+    }
+    return match n {
+        1 { 10 }
+        else {
+            0
+        }
+    }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (header
+    (identifier)
+    (type_identifier
+      (identifier))
+    (path))
+  (function_declaration
+    (identifier)
+    (parameters
+      (parameter
+        (identifier)
+        (type_identifier
+          (identifier))))
+    (type_identifier
+      (identifier))
+    (block
+      (match_statement
+        (identifier)
+        (match_arm
+          (integer)
+          (integer)
+          (block
+            (expression_statement
+              (call
+                (identifier)
+                (arguments)))))
+        (match_arm
+          (block)))
+      (return_statement
+        (match_expression
+          (identifier)
+          (match_arm
+            (integer)
+            (integer))
+          (match_arm
+            (integer)))))))
+
+================================================================================
+Enum
+================================================================================
+
+// Tools.
+enum E_Tool at /Game/Types/E_Tool {
+    Hammer
+    // Cuts wood.
+    Saw "Hand Saw"
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (comment)
+  (enum_declaration
+    (identifier)
+    (path)
+    (enum_value
+      (identifier))
+    (comment)
+    (enum_value
+      (identifier)
+      (string))))
+
+================================================================================
+Struct
+================================================================================
+
+struct S_Cell at /Game/Types/S_Cell {
+    X: int
+    // How far up.
+    Y: int = 1
+    Next: array<Vector2D>
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (struct_declaration
+    (identifier)
+    (path)
+    (struct_field
+      (identifier)
+      (type_identifier
+        (identifier)))
+    (comment)
+    (struct_field
+      (identifier)
+      (type_identifier
+        (identifier))
+      (integer))
+    (struct_field
+      (identifier)
+      (array_type
+        (type_identifier
+          (identifier))))))
+
+================================================================================
+Interface
+================================================================================
+
+interface BPI_Usable at /Game/Interfaces/BPI_Usable {
+    fn Use(by: Actor)
+    fn CanUse(by: Actor) -> bool
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (interface_declaration
+    (identifier)
+    (path)
+    (interface_function
+      (identifier)
+      (parameters
+        (parameter
+          (identifier)
+          (type_identifier
+            (identifier)))))
+    (interface_function
+      (identifier)
+      (parameters
+        (parameter
+          (identifier)
+          (type_identifier
+            (identifier))))
+      (type_identifier
+        (identifier)))))
+
+================================================================================
+Counting
+================================================================================
+
+blueprint B : Actor at /Game/B
+fn F(n: int) {
+    for i in 1..n - 1 {
+    }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (header
+    (identifier)
+    (type_identifier
+      (identifier))
+    (path))
+  (function_declaration
+    (identifier)
+    (parameters
+      (parameter
+        (identifier)
+        (type_identifier
+          (identifier))))
+    (block
+      (for_statement
+        (identifier)
+        (integer)
+        (binary_expression
+          (identifier)
+          (integer))
+        (block)))))
+
+================================================================================
+Compound assignment
+================================================================================
+
+blueprint B : Actor at /Game/B
+fn F() {
+    Items[i] += 1
+    Flags |= 4
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (header
+    (identifier)
+    (type_identifier
+      (identifier))
+    (path))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (block
+      (assignment
+        (index_expression
+          (identifier)
+          (identifier))
+        (integer))
+      (assignment
+        (identifier)
+        (integer)))))
+
+================================================================================
+Parameter defaults
+================================================================================
+
+blueprint B : Actor at /Game/B
+fn Hit(amount: int, times: int = 1) {
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (header
+    (identifier)
+    (type_identifier
+      (identifier))
+    (path))
+  (function_declaration
+    (identifier)
+    (parameters
+      (parameter
+        (identifier)
+        (type_identifier
+          (identifier)))
+      (parameter
+        (identifier)
+        (type_identifier
+          (identifier))
+        (integer)))
+    (block)))
+
+================================================================================
+Pure and private functions
+================================================================================
+
+blueprint B : Actor at /Game/B
+private pure fn Area() -> int {
+}
+protected pure mut fn Next() -> int {
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (header
+    (identifier)
+    (type_identifier
+      (identifier))
+    (path))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_identifier
+      (identifier))
+    (block))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_identifier
+      (identifier))
+    (block)))
+
+================================================================================
+A function with out parameters
+================================================================================
+
+blueprint B : Actor at /Game/B
+fn Lookup(key: string, out found: bool, out value: int) {
+    found = true
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (header
+    name: (identifier)
+    parent: (type_identifier
+      (identifier))
+    path: (path))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameters
+      (parameter
+        name: (identifier)
+        type: (type_identifier
+          (identifier)))
+      (parameter
+        name: (identifier)
+        type: (type_identifier
+          (identifier)))
+      (parameter
+        name: (identifier)
+        type: (type_identifier
+          (identifier))))
+    body: (block
+      (assignment
+        target: (identifier)
+        value: (boolean)))))
+
+================================================================================
+A contextual word as a name, and names in backticks
+================================================================================
+
+blueprint B : Actor at /Game/B
+var in: int
+fn `Scale It`(out: int, `if`: int) {
+    out = `if` + in
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (header
+    name: (identifier)
+    parent: (type_identifier
+      (identifier))
+    path: (path))
+  (variable_declaration
+    name: (identifier)
+    type: (type_identifier
+      (identifier)))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameters
+      (parameter
+        name: (identifier)
+        type: (type_identifier
+          (identifier)))
+      (parameter
+        name: (identifier)
+        type: (type_identifier
+          (identifier))))
+    body: (block
+      (assignment
+        target: (identifier)
+        value: (binary_expression
+          left: (identifier)
+          right: (identifier))))))
+
+================================================================================
+A private variable, a custom event, and labelled loops
+================================================================================
+
+blueprint B : Actor at /Game/B
+private var Seed: int = 7
+event Pulse(times: int) {
+    rows: for row in 0..times {
+        for item, i in Items {
+            if i > row {
+                continue rows
+            }
+            break
+        }
+    }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (header
+    name: (identifier)
+    parent: (type_identifier
+      (identifier))
+    path: (path))
+  (variable_declaration
+    name: (identifier)
+    type: (type_identifier
+      (identifier))
+    value: (integer))
+  (custom_event_declaration
+    name: (identifier)
+    parameters: (parameters
+      (parameter
+        name: (identifier)
+        type: (type_identifier
+          (identifier))))
+    body: (block
+      (labelled_statement
+        label: (identifier)
+        body: (for_statement
+          name: (identifier)
+          items: (integer)
+          last: (identifier)
+          body: (block
+            (for_statement
+              name: (identifier)
+              name: (identifier)
+              items: (identifier)
+              body: (block
+                (if_statement
+                  condition: (binary_expression
+                    left: (identifier)
+                    right: (identifier))
+                  consequence: (block
+                    (continue_statement
+                      label: (identifier))))
+                (break_statement)))))))))

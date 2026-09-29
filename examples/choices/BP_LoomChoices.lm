@@ -1,0 +1,55 @@
+blueprint BP_LoomChoices : Actor at /Game/Loom/Examples/choices/BP_LoomChoices
+
+var Calls: int = 0
+var Items: array<int> = []
+var Group: ETickingGroup = ETickingGroup.TG_PrePhysics
+
+// Counts each call, so a case can tell whether it ran.
+fn Next() -> int {
+    Calls = Calls + 1
+    return Calls
+}
+
+// Only the side chosen is computed: Next runs only when asked to.
+fn Chosen(ask: bool) -> int {
+    return if ask { Next() } else { 0 }
+}
+
+// The first item, read only when there is one.
+fn First() -> int {
+    return if Items.Length() > 0 { Items[0] } else { -1 }
+}
+
+// A whole number beside a float is a float.
+fn Speed(running: bool) -> float {
+    let speed = if running { 600 } else { 300.5 }
+    return speed
+}
+
+// else if, as in a statement.
+fn Size(n: int) -> string {
+    return if n == 0 { "none" } else if n == 1 { "one" } else { "many" }
+}
+
+// The first arm that lists the value runs, and a value no arm lists does nothing.
+fn InGroup() -> int {
+    match Group {
+        ETickingGroup.TG_PrePhysics, ETickingGroup.TG_StartPhysics {
+            return 1
+        }
+        ETickingGroup.TG_PostPhysics {
+            return 2
+        }
+    }
+    return 0
+}
+
+// A match that gives a value, computing only the arm chosen.
+fn Named(n: int) -> string {
+    return match n {
+        1 { "one" }
+        2, 3 { "few" }
+        -1 { string(Next()) }
+        else { "many" }
+    }
+}

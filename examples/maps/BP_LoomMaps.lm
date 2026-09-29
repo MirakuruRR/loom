@@ -1,0 +1,37 @@
+blueprint BP_LoomMaps : Actor at /Game/Loom/Examples/maps/BP_LoomMaps
+
+var Stock: map<string, int> = {"wood": 3, "stone": 4}
+var Names: array<string> = ["a", "b"]
+var Engine: soft<class<Actor>> = /Script/Engine.Actor
+var Total: int = 0
+var Count: int = 0
+var Seen: string = ""
+var Found: bool = false
+var Loaded: bool = false
+
+fn Walk() {
+    Total = 0
+    Seen = ""
+    for name, count in Stock {
+        Total = Total + count
+        Seen = Seen + name
+    }
+    for name in Names {
+        Seen = Seen + name
+    }
+    Count = Stock.Length()
+}
+
+fn Change() {
+    Stock["iron"] = 5
+    Stock["wood"] = Stock["wood"] + 7
+    Stock.Remove("stone")
+    Found = Stock.Contains("iron") && !Stock.Contains("stone")
+    Walk()
+}
+
+fn Load() {
+    let class = Engine.load()
+    Loaded = KismetSystemLibrary.IsValidClass(class)
+    Seen = string(Engine)
+}

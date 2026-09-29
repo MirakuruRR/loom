@@ -1,0 +1,9 @@
+{
+  "blueprint": "/Game/Loom/Examples/inheritance/BP_LoomInheritance",
+  "cases": [
+    {"name": "an inherited interface's function, overridden", "call": "Evaluated", "expect": {"return": "6.000000"}},
+    {"name": "the override, called as the engine calls it", "call": "OnEvaluate", "args": {"Interp": "0.5"}, "expect": {"return": "1.500000"}},
+    {"name": "the parent's calls reach this Blueprint's override and the parent's event", "call": "ThroughCasts", "set": {"Ticks": "0", "Elapsed": "0"}, "expect": {"return": "0.750000", "Ticks": "1", "Elapsed": "0.500000"}},
+    {"name": "an interface implemented through the parent", "call": "Inherited", "expect": {"return": "true"}}
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "blueprint": "/Game/Loom/Examples/cells/BP_LoomCells",
+  "cases": [
+    {"name": "a declared struct's fields, given and at their defaults", "call": "Defaults", "expect": {"return": "511"}},
+    {"name": "a variable's default, with a field given", "call": "Up", "expect": {"return": "2"}},
+    {"name": "a field set in place", "call": "Up", "set": {"Start": "(X=0,Y=7)"}, "expect": {"return": "8"}},
+    {"name": "an array field", "call": "Tagged", "args": {"tag": "wood"}, "expect": {"return": "1"}}
+  ]
+}

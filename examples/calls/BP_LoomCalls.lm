@@ -1,0 +1,42 @@
+blueprint BP_LoomCalls : Actor at /Game/Loom/Examples/calls/BP_LoomCalls
+
+var Result: int = 0
+var Label: string = ""
+var Steps: int = 0
+
+fn Square(x: int) -> int {
+    return x * x
+}
+
+fn Clamp(x: int, lo: int, hi: int) -> int {
+    if x < lo {
+        return lo
+    }
+    if x > hi {
+        return hi
+    }
+    return x
+}
+
+// Counts its calls, so a loop that calls it in its condition shows how often that ran.
+fn Below(i: int, n: int) -> bool {
+    Steps = Steps + 1
+    return i < n
+}
+
+fn Run(n: int) {
+    Result = Square(n) + Clamp(n, 0, 3)
+    // An inherited native property of Actor, read and written through this object.
+    CustomTimeDilation = 0.5
+    Label = "n=" + string(n) + " dilation=" + string(CustomTimeDilation)
+    Steps = 0
+    let i = 0
+    while Below(i, n) {
+        i = i + 1
+    }
+}
+
+// The path of this Blueprint's class, which is where it was saved.
+fn Where() -> string {
+    return string(GameplayStatics.GetObjectClass(self))
+}

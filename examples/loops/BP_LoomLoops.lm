@@ -1,0 +1,126 @@
+blueprint BP_LoomLoops : Actor at /Game/Loom/Examples/loops/BP_LoomLoops
+
+var Items: array<int>
+var Stock: map<string, int> = {"wood": 3, "stone": 0, "iron": 2}
+
+fn FirstSquareOver(limit: int) -> int {
+    let i = 0
+    while true {
+        if i * i > limit {
+            break
+        }
+        i = i + 1
+    }
+    return i
+}
+
+fn FirstNegative() -> int {
+    let index = 0
+    let found = -1
+    for x in Items {
+        if x < 0 {
+            found = index
+            break
+        }
+        index = index + 1
+    }
+    return found
+}
+
+fn SumOdd(n: int) -> int {
+    let total = 0
+    let i = 0
+    while i < n {
+        i = i + 1
+        if i % 2 == 0 {
+            continue
+        }
+        total = total + i
+    }
+    return total
+}
+
+fn SumPositive() -> int {
+    let total = 0
+    for x in Items {
+        if x < 0 {
+            continue
+        }
+        total = total + x
+    }
+    return total
+}
+
+// Every path through the body leaves it, so only the continues go on to the next item.
+fn AbsUntilZero() -> int {
+    let total = 0
+    for x in Items {
+        if x == 0 {
+            break
+        } else if x < 0 {
+            total = total - x
+            continue
+        } else {
+            total = total + x
+            continue
+        }
+    }
+    return total
+}
+
+fn Stocked() -> int {
+    let count = 0
+    for name, amount in Stock {
+        if amount == 0 {
+            continue
+        }
+        count = count + 1
+    }
+    return count
+}
+
+// The inner break leaves only the inner loop, so every row is counted.
+fn CountPairs(rows: int, limit: int) -> int {
+    let count = 0
+    let row = 1
+    while row <= rows {
+        let column = 1
+        while true {
+            if row * column > limit {
+                break
+            }
+            count = count + 1
+            column = column + 1
+        }
+        row = row + 1
+    }
+    return count
+}
+
+// A count includes its last number, as Blueprint's For Loop does. Its first number is computed
+// once, and its last again before every pass, so lowering the last number ends the count early.
+fn SumTo(n: int) -> int {
+    let total = 0
+    let last = n
+    for i in 1..last {
+        if i == 3 {
+            last = 4
+            continue
+        }
+        total = total + i
+    }
+    return total
+}
+
+fn Triangle(size: int) -> int {
+    let cells = 0
+    for x in 0..size - 1 {
+        for y in 0..size - 1 {
+            if y > x {
+                break
+            }
+            cells = cells + 1
+        }
+    }
+    return cells
+}

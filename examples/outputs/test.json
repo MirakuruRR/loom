@@ -1,0 +1,13 @@
+{
+  "version": 0,
+  "blueprint": "/Game/Loom/Examples/outputs/BP_LoomOutputs",
+  "cases": [
+    {"name": "outputs assigned and given at the end of the body", "call": "Lookup", "args": {"key": "a"}, "expect": {"found": "True", "value": "11"}},
+    {"name": "outputs given by a return", "call": "Lookup", "args": {"key": "b"}, "expect": {"found": "True", "value": "2"}},
+    {"name": "outputs start at zero on every call", "call": "Lookup", "args": {"key": "c"}, "repeat": 2, "expect": {"found": "False", "value": "10"}},
+    {"name": "a call reads its outputs by name", "call": "Use", "args": {"key": "b"}, "expect": {"return": "2"}},
+    {"name": "an output not found", "call": "Use", "args": {"key": "c"}, "expect": {"return": "-1"}},
+    {"name": "a pure function's return value and output", "call": "Halves", "args": {"n": "7"}, "expect": {"return": "31"}},
+    {"name": "a return value beside an output", "call": "Divide", "args": {"n": "7", "by": "2"}, "expect": {"return": "3", "remainder": "1"}}
+  ]
+}

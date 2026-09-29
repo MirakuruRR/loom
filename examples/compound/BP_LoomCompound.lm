@@ -1,0 +1,45 @@
+blueprint BP_LoomCompound : Actor at /Game/Loom/Examples/compound/BP_LoomCompound
+
+var Count: int = 0
+var Items: array<int> = [1, 2, 3]
+var Label: string = "go"
+var Where: Vector2D
+var Picks: int = 0
+
+fn Arithmetic(x: int) -> int {
+    Count += x
+    Count *= 3
+    Count -= 1
+    Count /= 2
+    Count %= 5
+    return Count
+}
+
+fn Bits() -> int {
+    let flags = 1
+    flags |= 6
+    flags &= 5
+    return flags
+}
+
+fn Shout() -> string {
+    Label += "!"
+    return Label
+}
+
+fn Moved() -> float {
+    Where.X += 1.5
+    Where.X *= 2.0
+    return Where.X
+}
+
+fn Pick() -> int {
+    Picks += 1
+    return Picks
+}
+
+// The index is computed once, so Pick runs once, and the item it picks is the one read.
+fn Scaled() -> int {
+    Items[Pick()] *= 10
+    return Items[1] + Picks * 100
+}

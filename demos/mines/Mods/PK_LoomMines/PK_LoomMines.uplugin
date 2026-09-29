@@ -1,0 +1,6 @@
+{
+  "Name": "Loom Mines",
+  "Description": "A loom demo: a first-person raycaster through one layer of the colony's terrain. Arrow keys walk and turn, Page Up and Page Down change layer.",
+  "Version": "0.1",
+  "CreatedBy": "pierrekin"
+}

@@ -1,0 +1,14 @@
+{
+  "blueprint": "/Game/Loom/Examples/interfaces/BP_LoomInterfaces",
+  "cases": [
+    {"name": "an interface's event, called as the engine calls it", "call": "PreDataflowSimulationTick", "set": {"Ticks": "0", "Elapsed": "0"}, "args": {"SimulationTime": "0", "DeltaTime": "2"}, "expect": {"Ticks": "1", "Elapsed": "2.000000"}},
+    {"name": "an interface's function, called as the engine calls it", "call": "OnEvaluate", "args": {"Interp": "0.75"}, "expect": {"return": "1.500000"}},
+    {"name": "both called through casts", "call": "ThroughCasts", "set": {"Ticks": "0", "Elapsed": "0"}, "expect": {"return": "0.500000", "Ticks": "1", "Elapsed": "0.500000"}},
+    {"name": "both called without a cast", "call": "Direct", "set": {"Ticks": "0", "Elapsed": "0"}, "expect": {"return": "3.000000", "Ticks": "1", "Elapsed": "0.250000"}},
+    {"name": "a function left without a handler does nothing", "call": "Unhandled", "set": {"Ticks": "0", "Elapsed": "0"}, "expect": {"Ticks": "0", "Elapsed": "0.000000"}},
+    {"name": "an interface in a variable and a parameter", "call": "Held", "expect": {"return": "8.000000"}},
+    {"name": "implements() of an object that does", "call": "ImplementedHere", "expect": {"return": "true"}},
+    {"name": "implements() of an object that does not", "call": "ImplementedByAnother", "expect": {"return": "false"}},
+    {"name": "calls on an object that does not implement them do nothing", "call": "OnAnother", "set": {"Ticks": "0", "Elapsed": "0"}, "expect": {"return": "0.000000", "Ticks": "0", "Elapsed": "0.000000"}}
+  ]
+}

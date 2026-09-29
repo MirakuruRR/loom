@@ -1,0 +1,7 @@
+# Text is checked out with LF everywhere, Windows too, whatever a clone's core.autocrlf says: the
+# tests read sources and pages byte for byte, and a bless writes them back.
+* text=auto eol=lf
+
+# The engine's types the tests compile against, remade whole by cargo xtask test-types. They're
+# plain text, so git stores each remake as a small delta, and GitHub folds their diffs away.
+packages/loom/tests/types/engine-*.json linguist-generated

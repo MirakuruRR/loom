@@ -1,0 +1,3 @@
+enum E_Hand at /Game/Loom/Foreign/E_Hand {
+    Left
+}

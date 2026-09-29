@@ -1,0 +1,21 @@
+{
+  "version": 0,
+  "ops": [
+    {"op":"blueprint","path":"/Game/Loom/Examples/hits/BPL_LoomHits","parent":"/Script/Engine.BlueprintFunctionLibrary","source":"examples/hits/BPL_LoomHits.lm"},
+    {"op":"function","name":"Hit","params":[{"name":"amount","type":"int"},{"name":"times","type":"int","default":"2"},{"name":"bonus","type":"float","default":"0.5"}],"returns":[{"name":"ReturnValue","type":"float"}],"description":"A function whose last parameters have defaults, for another Blueprint to call."},
+    {"op":"node","graph":"Hit","id":"Hit/entry","kind":"entry"},
+    {"op":"node","graph":"Hit","id":"Hit/pure1","kind":"call","function":"/Script/Engine.KismetMathLibrary:Multiply_IntInt"},
+    {"op":"link","from":"Hit/entry.amount","to":"Hit/pure1.A"},
+    {"op":"link","from":"Hit/entry.times","to":"Hit/pure1.B"},
+    {"op":"node","graph":"Hit","id":"Hit/pure2","kind":"call","function":"/Script/Engine.KismetMathLibrary:Conv_IntToDouble"},
+    {"op":"link","from":"Hit/pure1.ReturnValue","to":"Hit/pure2.InInt"},
+    {"op":"node","graph":"Hit","id":"Hit/pure3","kind":"call","function":"/Script/Engine.KismetMathLibrary:Add_DoubleDouble"},
+    {"op":"link","from":"Hit/pure2.ReturnValue","to":"Hit/pure3.A"},
+    {"op":"link","from":"Hit/entry.bonus","to":"Hit/pure3.B"},
+    {"op":"node","graph":"Hit","id":"Hit/return4","kind":"result"},
+    {"op":"link","from":"Hit/entry.then","to":"Hit/return4.execute"},
+    {"op":"link","from":"Hit/pure3.ReturnValue","to":"Hit/return4.ReturnValue"},
+    {"op":"compile"},
+    {"op":"save"}
+  ]
+}

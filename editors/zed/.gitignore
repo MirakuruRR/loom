@@ -1,0 +1,3 @@
+# What Zed builds when it installs this as a dev extension.
+extension.wasm
+grammars/

@@ -1,0 +1,21 @@
+blueprint BP_MapLoad : Actor at /Game/Mods/PK_LoomSum/BP_MapLoad
+
+var Total: int = 0
+
+fn Sum(N: int) {
+    Total = 0
+    let I: int = 0
+    while I <= N {
+        Total = Total + I
+        I = I + 1
+    }
+}
+
+fn Status() -> string {
+    return "PK_LoomSum: Total " + string(Total)
+}
+
+on ReceiveBeginPlay {
+    Sum(100)
+    ModAPI.GetModAPI().LogMessage(Status(), false)
+}

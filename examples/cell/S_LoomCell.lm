@@ -1,0 +1,8 @@
+// A place on a grid. A struct's source holds the struct alone, and every other source can use it.
+struct S_LoomCell at /Game/Loom/Examples/cell/S_LoomCell {
+    X: int
+    // How far up. A field starts out zero, or at its default.
+    Y: int = 1
+    Tool: E_LoomTool = E_LoomTool.Saw
+    Tags: array<string>
+}

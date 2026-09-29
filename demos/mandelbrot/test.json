@@ -1,0 +1,39 @@
+{
+ "blueprint": "/Game/Mods/PK_LoomMandelbrot/BP_MapLoad",
+ "cases": [
+  {
+   "name": "the origin is in the set",
+   "call": "Escape",
+   "args": {
+    "cx": "0.0",
+    "cy": "0.0"
+   },
+   "expect": {
+    "return": "64"
+   }
+  },
+  {
+   "name": "a far point escapes at once",
+   "call": "Escape",
+   "args": {
+    "cx": "2.0",
+    "cy": "2.0"
+   },
+   "expect": {
+    "return": "1"
+   }
+  },
+  {
+   "name": "after the last row, the next pass starts at the top",
+   "set": {
+    "Row": "49",
+    "Passes": "0"
+   },
+   "call": "NextRow",
+   "expect": {
+    "Row": "0",
+    "Passes": "1"
+   }
+  }
+ ]
+}

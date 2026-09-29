@@ -1,0 +1,75 @@
+blueprint BP_MapLoad : Actor at /Game/Mods/PK_LoomPlasma/BP_MapLoad
+
+var Target: TextureRenderTarget2D
+var Tris: array<CanvasUVTri>
+var Time: float = 0.0
+var Frames: int = 0
+var Cells: int = 0
+// The grid, in cells of 2 by 2 pixels.
+var Columns: int = 40
+var Rows: int = 25
+// How long each frame spends drawing, in milliseconds, smoothed over about twenty frames.
+var DrawMs: float = 0.0
+// Seconds since the mod log last heard how it is doing.
+var Since: float = 0.0
+
+on ReceiveBeginPlay {
+    SetTickableWhenPaused(true)
+    Target = KismetRenderingLibrary.CreateRenderTarget2D(160, 100)
+    let screen = create_widget(WBP_Screen)
+    screen.AddToViewport(10)
+    screen.Screen.SetBrushResourceObject(Target)
+}
+
+// How it is doing, as the mod log reports it.
+fn Status() -> string {
+    return "PK_LoomPlasma: frame " + string(Frames) + ", " + string(Cells) + " cells, " + string(Columns) + " by " + string(Rows) + ", drawing takes " + string(DrawMs) + " ms"
+}
+
+// Every cell is two triangles in one array, drawn by one call: the render target's canvas draws
+// each call on its own, so a call per cell swamps the render thread.
+fn Fill() {
+    Tris.Clear()
+    Cells = 0
+    let y = 0
+    while y < Rows {
+        let x = 0
+        while x < Columns {
+            let fx = float(x) * 0.12
+            let fy = float(y) * 0.15
+            let v = KismetMathLibrary.Sin(fx + Time) + KismetMathLibrary.Sin(fy + Time * 1.3) + KismetMathLibrary.Sin((fx + fy) * 0.7 + Time * 0.7)
+            let r = 0.5 + 0.5 * KismetMathLibrary.Sin(v * 2.0)
+            let g = 0.5 + 0.5 * KismetMathLibrary.Sin(v * 2.0 + 2.1)
+            let b = 0.5 + 0.5 * KismetMathLibrary.Sin(v * 2.0 + 4.2)
+            let c = KismetMathLibrary.MakeColor(r, g, b)
+            let left = float(x) * 2.0
+            let top = float(y) * 2.0
+            let a = Vector2D(X: left, Y: top)
+            let d = Vector2D(X: left + 2.0, Y: top + 2.0)
+            Tris.Add(CanvasUVTri(V0_Pos: a, V1_Pos: Vector2D(X: left + 2.0, Y: top), V2_Pos: d, V0_Color: c, V1_Color: c, V2_Color: c))
+            Tris.Add(CanvasUVTri(V0_Pos: a, V1_Pos: d, V2_Pos: Vector2D(X: left, Y: top + 2.0), V0_Color: c, V1_Color: c, V2_Color: c))
+            Cells = Cells + 1
+            x = x + 1
+        }
+        y = y + 1
+    }
+}
+
+on ReceiveTick(dt: float) {
+    Time = Time + dt
+    Since = Since + dt
+    if Since >= 10.0 {
+        Since = 0.0
+        ModAPI.GetModAPI().LogMessage(Status(), false)
+    }
+    let clock = GameplayStatics.GetAccurateRealTime()
+    let start = float(clock.Seconds) + clock.PartialSeconds
+    Fill()
+    let draw = KismetRenderingLibrary.BeginDrawCanvasToRenderTarget(Target)
+    draw.Canvas.K2_DrawTriangle(none, Tris)
+    KismetRenderingLibrary.EndDrawCanvasToRenderTarget(draw.Context)
+    Frames = Frames + 1
+    let now = GameplayStatics.GetAccurateRealTime()
+    let ms = (float(now.Seconds) + now.PartialSeconds - start) * 1000.0
+    DrawMs = DrawMs + (ms - DrawMs) * 0.05
+}

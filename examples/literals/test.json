@@ -1,0 +1,11 @@
+{
+  "blueprint": "/Game/Loom/Examples/literals/BP_LoomLiterals",
+  "cases": [
+    {"name": "an array and a map written out as arguments", "call": "Arguments", "expect": {"Total": "6.500000", "Seen": "2"}},
+    {"name": "defaults included from JSON files", "call": "Included", "expect": {"Total": "10.000000", "Seen": "Hello"}},
+    {"name": "a name made from a string, compared with written-out strings", "call": "Names", "expect": {"Key": "greeting", "Same": "true"}},
+    {"name": "arrays of plain literals take their type from them", "call": "Inferred", "expect": {"Total": "5.500000"}},
+    {"name": "fields set through a field and through an item", "call": "Fields", "expect": {"Total": "12.000000"}},
+    {"name": "an object constructed at runtime", "call": "Construct", "expect": {"Made": "true"}}
+  ]
+}

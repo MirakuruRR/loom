@@ -1,0 +1,127 @@
+blueprint BP_LoomDelegates : Actor at /Game/Loom/Examples/delegates/BP_LoomDelegates
+
+implements BPI_LoomTimed
+
+component Part: SceneComponent
+
+var Fired: int = 0
+var WasActive: bool = false
+var Scores: int = 0
+var Hits: int = 0
+var Damage: float = 0
+
+dispatcher Scored(points: int)
+dispatcher Later(seconds: float, done: TimerDynamicDelegate)
+
+fn OnTimer() {
+    Fired += 1
+}
+
+// A function named where a delegate is expected is a delegate to it.
+fn Start() {
+    KismetSystemLibrary.K2_SetTimerDelegate(OnTimer, 0.5, false)
+}
+
+// A delegate passes through a function's parameter and return value.
+fn After(seconds: float, handler: TimerDynamicDelegate) {
+    KismetSystemLibrary.K2_SetTimerDelegate(handler, seconds, false)
+}
+
+fn Handler() -> TimerDynamicDelegate {
+    return OnTimer
+}
+
+fn StartThrough() {
+    After(0.5, Handler())
+}
+
+// Another object's function.
+fn StartToggle() {
+    WasActive = Part.IsActive()
+    KismetSystemLibrary.K2_SetTimerDelegate(Part.ToggleActive, 0.5, false)
+}
+
+fn Toggled() -> bool {
+    return Part.IsActive() != WasActive
+}
+
+fn StartLooping() {
+    KismetSystemLibrary.K2_SetTimerDelegate(OnTimer, 0.25, true)
+}
+
+fn Score(points: int) {
+    Scores += points
+}
+
+fn Doubled(points: int) {
+    Scores += points * 2
+}
+
+// Binding the same function twice binds it once.
+fn Bind() {
+    Scored.bind(Score)
+    Scored.bind(Score)
+    Scored.broadcast(1)
+}
+
+fn Unbind() {
+    Scored.unbind(Score)
+    Scored.broadcast(1)
+}
+
+fn UnbindAll() {
+    Scored.bind(Score)
+    Scored.bind(Doubled)
+    Scored.broadcast(1)
+    Scored.unbind_all()
+    Scored.broadcast(1)
+}
+
+// The engine passes the damage as a 32-bit float, so this takes one.
+fn Hurt(actor: Actor, amount: float, kind: DamageType, by: Controller, causer: Actor) {
+    Hits += 1
+    Damage = amount
+}
+
+fn Harm() {
+    GameplayStatics.ApplyDamage(self, 2.5, none, self, none)
+}
+
+fn BindHurt() {
+    self.OnTakeAnyDamage.bind(Hurt)
+    Harm()
+}
+
+fn UnbindHurt() {
+    self.OnTakeAnyDamage.unbind(Hurt)
+    Harm()
+}
+
+// An interface's function that takes a delegate, handled as an event, and one that returns one,
+// handled as a function, each called through the interface.
+on Delay(seconds: float, done: TimerDynamicDelegate) {
+    KismetSystemLibrary.K2_SetTimerDelegate(done, seconds, false)
+}
+
+on Chosen() -> TimerDynamicDelegate {
+    return OnTimer
+}
+
+fn StartDelayed() {
+    cast(self, BPI_LoomTimed).Delay(0.5, OnTimer)
+}
+
+fn StartChosen() {
+    KismetSystemLibrary.K2_SetTimerDelegate(cast(self, BPI_LoomTimed).Chosen(), 0.5, false)
+}
+
+// A dispatcher that passes a delegate, to a function bound to it that passes it on.
+fn Wait(seconds: float, done: TimerDynamicDelegate) {
+    KismetSystemLibrary.K2_SetTimerDelegate(done, seconds, false)
+}
+
+fn StartLater() {
+    Later.bind(Wait)
+    Later.broadcast(0.5, OnTimer)
+    Later.unbind(Wait)
+}

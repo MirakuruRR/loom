@@ -1,0 +1,7 @@
+// What a worker holds. An enum's source holds the enum alone, and every other source can use it.
+enum E_LoomTool at /Game/Loom/Examples/tool/E_LoomTool {
+    Hammer
+    // Cuts wood. The editor shows it by its label.
+    Saw "Hand Saw"
+    Chisel
+}

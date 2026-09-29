@@ -1,0 +1,320 @@
+blueprint BP_MapLoad : Actor at /Game/Mods/PK_LoomTetris/BP_MapLoad
+
+var Screen: WBP_Tetris
+var Target: TextureRenderTarget2D
+var Tris: array<CanvasUVTri>
+
+// The well is 10 cells wide and 20 tall, row by row from the top: 0 is empty, and 1 to 7 is the
+// colour of the piece that left it.
+var Board: array<int>
+// Each piece's four rotations, as 16 bits of a 4 by 4 grid read row by row from the top left.
+var Shapes: array<int>
+// The bit for each cell of that grid.
+var Bits: array<int>
+var Colours: array<LinearColor>
+
+var Piece: int = 0
+var Next: int = 0
+var Rot: int = 0
+var X: int = 3
+var Y: int = 0
+var Fall: float = 0.0
+var Score: int = 0
+var Lines: int = 0
+var Level: int = 0
+var Games: int = 0
+
+// Whether each key was down last frame, so a press acts once however long it is held, and when
+// a held Left or Right moves again.
+var LeftWas: bool = false
+var RightWas: bool = false
+var UpWas: bool = false
+var DropWas: bool = false
+var Repeat: float = 0.0
+// Seconds since the mod log last heard how it is doing.
+var Since: float = 0.0
+
+on ReceiveBeginPlay {
+    SetTickableWhenPaused(true)
+    Init()
+    Target = KismetRenderingLibrary.CreateRenderTarget2D(160, 200)
+    Screen = create_widget(WBP_Tetris)
+    Screen.AddToViewport(10)
+    Screen.Board.SetBrushResourceObject(Target)
+    Screen.Help.SetText(text("Left / Right: move\nUp: rotate\nDown: drop faster\nEnter: drop"))
+    Reset()
+}
+
+fn Init() {
+    // I, J, L, O, S, T, Z.
+    Shapes = [
+        0x0F00, 0x2222, 0x00F0, 0x4444,
+        0x44C0, 0x8E00, 0x6440, 0x0E20,
+        0x4460, 0x0E80, 0xC440, 0x2E00,
+        0xCC00, 0xCC00, 0xCC00, 0xCC00,
+        0x06C0, 0x8C40, 0x6C00, 0x4620,
+        0x0E40, 0x4C40, 0x4E00, 0x4640,
+        0x0C60, 0x4C80, 0xC600, 0x2640
+    ]
+    Bits = [
+        0x8000, 0x4000, 0x2000, 0x1000,
+        0x0800, 0x0400, 0x0200, 0x0100,
+        0x0080, 0x0040, 0x0020, 0x0010,
+        0x0008, 0x0004, 0x0002, 0x0001
+    ]
+    Colours = [
+        KismetMathLibrary.MakeColor(0.0, 0.85, 0.9),
+        KismetMathLibrary.MakeColor(0.1, 0.25, 1.0),
+        KismetMathLibrary.MakeColor(1.0, 0.45, 0.0),
+        KismetMathLibrary.MakeColor(1.0, 0.85, 0.0),
+        KismetMathLibrary.MakeColor(0.1, 0.9, 0.15),
+        KismetMathLibrary.MakeColor(0.65, 0.1, 0.95),
+        KismetMathLibrary.MakeColor(0.95, 0.1, 0.1)
+    ]
+}
+
+fn Reset() {
+    Board.Clear()
+    let i = 0
+    while i < 200 {
+        Board.Add(0)
+        i = i + 1
+    }
+    Score = 0
+    Lines = 0
+    Level = 0
+    Games = Games + 1
+    Next = KismetMathLibrary.RandomIntegerInRange(0, 6)
+    Spawn()
+    ShowScore()
+}
+
+// The next piece at the top. If it does not fit, the well is full and a new game starts.
+fn Spawn() {
+    Piece = Next
+    Next = KismetMathLibrary.RandomIntegerInRange(0, 6)
+    Rot = 0
+    X = 3
+    Y = 0
+    Fall = 0.0
+    if !Fits(Piece, Rot, X, Y) {
+        Reset()
+    }
+}
+
+fn Cell(piece: int, rot: int, i: int) -> bool {
+    return Shapes[piece * 4 + rot] & Bits[i] != 0
+}
+
+fn Fits(piece: int, rot: int, px: int, py: int) -> bool {
+    let i = 0
+    while i < 16 {
+        if Cell(piece, rot, i) {
+            let x = px + i % 4
+            let y = py + i / 4
+            if x < 0 || x >= 10 || y >= 20 {
+                return false
+            }
+            if y >= 0 {
+                if Board[y * 10 + x] != 0 {
+                    return false
+                }
+            }
+        }
+        i = i + 1
+    }
+    return true
+}
+
+fn Lock() {
+    let i = 0
+    while i < 16 {
+        if Cell(Piece, Rot, i) {
+            let y = Y + i / 4
+            if y >= 0 {
+                Board[y * 10 + X + i % 4] = Piece + 1
+            }
+        }
+        i = i + 1
+    }
+    ClearLines()
+    Spawn()
+}
+
+fn ClearLines() {
+    let cleared = 0
+    let y = 19
+    while y >= 0 {
+        let full = true
+        let x = 0
+        while x < 10 {
+            if Board[y * 10 + x] == 0 {
+                full = false
+            }
+            x = x + 1
+        }
+        if full {
+            cleared = cleared + 1
+            // Every row above moves down one, and the top row empties. The same row is looked at
+            // again, since it now holds the row that was above it.
+            let r = y
+            while r > 0 {
+                let c = 0
+                while c < 10 {
+                    Board[r * 10 + c] = Board[(r - 1) * 10 + c]
+                    c = c + 1
+                }
+                r = r - 1
+            }
+            let t = 0
+            while t < 10 {
+                Board[t] = 0
+                t = t + 1
+            }
+        } else {
+            y = y - 1
+        }
+    }
+    if cleared > 0 {
+        let points: array<int> = [0, 100, 300, 500, 800]
+        Lines = Lines + cleared
+        Level = Lines / 10
+        Score = Score + points[cleared] * (Level + 1)
+        ShowScore()
+    }
+}
+
+// The game so far, as the mod log reports it.
+fn Status() -> string {
+    return "PK_LoomTetris: game " + string(Games) + ", score " + string(Score) + ", " + string(Lines) + " lines, level " + string(Level + 1)
+}
+
+fn ShowScore() {
+    if KismetSystemLibrary.IsValid(Screen) {
+        Screen.Score.SetText(text("Score " + string(Score) + "    Lines " + string(Lines) + "    Level " + string(Level + 1)))
+    }
+}
+
+on ReceiveTick(dt: float) {
+    Since = Since + dt
+    if Since >= 10.0 {
+        Since = 0.0
+        ModAPI.GetModAPI().LogMessage(Status(), false)
+    }
+    let pc = GameplayStatics.GetPlayerController(0)
+    let left = pc.IsInputKeyDown("Left")
+    let right = pc.IsInputKeyDown("Right")
+    let up = pc.IsInputKeyDown("Up")
+    let down = pc.IsInputKeyDown("Down")
+    let drop = pc.IsInputKeyDown("Enter")
+
+    // Left and Right move once when pressed, and while held, again every 0.08 seconds after 0.2.
+    let dx = 0
+    if left && !LeftWas {
+        dx = -1
+        Repeat = 0.2
+    } else if right && !RightWas {
+        dx = 1
+        Repeat = 0.2
+    } else if left || right {
+        Repeat = Repeat - dt
+        if Repeat <= 0.0 {
+            Repeat = 0.08
+            if left {
+                dx = -1
+            } else {
+                dx = 1
+            }
+        }
+    }
+    LeftWas = left
+    RightWas = right
+    if dx != 0 {
+        if Fits(Piece, Rot, X + dx, Y) {
+            X = X + dx
+        }
+    }
+
+    // A rotation that does not fit tries one cell left, then one right.
+    if up && !UpWas {
+        let r = (Rot + 1) % 4
+        if Fits(Piece, r, X, Y) {
+            Rot = r
+        } else if Fits(Piece, r, X - 1, Y) {
+            Rot = r
+            X = X - 1
+        } else if Fits(Piece, r, X + 1, Y) {
+            Rot = r
+            X = X + 1
+        }
+    }
+    UpWas = up
+
+    if drop && !DropWas {
+        while Fits(Piece, Rot, X, Y + 1) {
+            Y = Y + 1
+        }
+        Lock()
+    }
+    DropWas = drop
+
+    let interval = KismetMathLibrary.FMax(0.6 - float(Level) * 0.05, 0.08)
+    if down {
+        interval = 0.04
+    }
+    Fall = Fall + dt
+    if Fall >= interval {
+        Fall = 0.0
+        if Fits(Piece, Rot, X, Y + 1) {
+            Y = Y + 1
+        } else {
+            Lock()
+        }
+    }
+    Draw()
+}
+
+fn Quad(x: float, y: float, w: float, h: float, c: LinearColor) {
+    let a = Vector2D(X: x, Y: y)
+    let d = Vector2D(X: x + w, Y: y + h)
+    Tris.Add(CanvasUVTri(V0_Pos: a, V1_Pos: Vector2D(X: x + w, Y: y), V2_Pos: d, V0_Color: c, V1_Color: c, V2_Color: c))
+    Tris.Add(CanvasUVTri(V0_Pos: a, V1_Pos: d, V2_Pos: Vector2D(X: x, Y: y + h), V0_Color: c, V1_Color: c, V2_Color: c))
+}
+
+// One cell, 10 pixels square with a pixel of gap, offset by left and top.
+fn Block(x: int, y: int, c: LinearColor, left: float, top: float) {
+    Quad(left + float(x) * 10.0, top + float(y) * 10.0, 9.0, 9.0, c)
+}
+
+fn Draw() {
+    Tris.Clear()
+    let dark = KismetMathLibrary.MakeColor(0.015, 0.015, 0.03)
+    Quad(0.0, 0.0, 160.0, 200.0, KismetMathLibrary.MakeColor(0.06, 0.055, 0.09))
+    Quad(0.0, 0.0, 100.0, 200.0, dark)
+    Quad(110.0, 0.0, 50.0, 50.0, dark)
+    let i = 0
+    while i < 200 {
+        let v = Board[i]
+        if v != 0 {
+            Block(i % 10, i / 10, Colours[v - 1], 0.0, 0.0)
+        }
+        i = i + 1
+    }
+    // The falling piece, and the next one in the box beside the well.
+    let j = 0
+    while j < 16 {
+        if Cell(Piece, Rot, j) {
+            let y = Y + j / 4
+            if y >= 0 {
+                Block(X + j % 4, y, Colours[Piece], 0.0, 0.0)
+            }
+        }
+        if Cell(Next, 0, j) {
+            Block(j % 4, j / 4, Colours[Next], 115.0, 5.0)
+        }
+        j = j + 1
+    }
+    let draw = KismetRenderingLibrary.BeginDrawCanvasToRenderTarget(Target)
+    draw.Canvas.K2_DrawTriangle(none, Tris)
+    KismetRenderingLibrary.EndDrawCanvasToRenderTarget(draw.Context)
+}

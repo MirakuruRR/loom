@@ -1,0 +1,10 @@
+{
+  "version": 0,
+  "ops": [
+    {"op":"blueprint","path":"/Game/Loom/Examples/timed/BPI_LoomTimed","parent":"/Script/CoreUObject.Interface","source":"examples/timed/BPI_LoomTimed.lm"},
+    {"op":"function","name":"Delay","params":[{"name":"seconds","type":"float"},{"name":"done","type":"delegate:/Script/Engine.TimerDynamicDelegate__DelegateSignature"}],"description":"Calls done after this many seconds."},
+    {"op":"function","name":"Chosen","returns":[{"name":"ReturnValue","type":"delegate:/Script/Engine.TimerDynamicDelegate__DelegateSignature"}],"description":"What to call when the time comes."},
+    {"op":"compile"},
+    {"op":"save"}
+  ]
+}

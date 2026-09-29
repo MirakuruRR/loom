@@ -1,0 +1,8 @@
+{
+  "blueprint": "/Game/Loom/Examples/usables/BP_LoomUsables",
+  "cases": [
+    {"name": "a declared interface's functions called through it", "call": "UseSelf", "set": {"Uses": "0"}, "expect": {"return": "true", "Uses": "2"}},
+    {"name": "and its function that returns a value", "call": "UseSelf", "set": {"Uses": "2"}, "expect": {"return": "false", "Uses": "4"}},
+    {"name": "something that doesn't implement it", "call": "UseTwice", "set": {"Uses": "0"}, "args": {"thing": "None"}, "expect": {"return": "false", "Uses": "0"}}
+  ]
+}

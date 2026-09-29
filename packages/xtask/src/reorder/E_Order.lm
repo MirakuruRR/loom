@@ -1,0 +1,5 @@
+enum E_Order at /Game/Loom/Reorder/E_Order {
+    A
+    B
+    C
+}

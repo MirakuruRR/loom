@@ -1,0 +1,6 @@
+blueprint WBP_View : UserWidget at /Game/Mods/PK_LoomMines/WBP_View
+
+// A frame on the left of the screen: a title bar over the picture.
+widget Frame: Border(BrushColor: "#12131ae8") at 64 360 size 1048 719
+widget Title: TextBlock(Text: "Mines.lm", ColorAndOpacity: "#e8e6ff") at 88 378 size 1000 40
+widget View: Image at 88 430 size 1000 625

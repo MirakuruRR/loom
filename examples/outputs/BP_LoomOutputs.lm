@@ -1,0 +1,36 @@
+blueprint BP_LoomOutputs : Actor at /Game/Loom/Examples/outputs/BP_LoomOutputs
+
+// An `out` parameter is an output of the function, given back beside its return value. A call
+// does not pass it; the body assigns it, and it starts at its type's zero on every call.
+fn Lookup(key: string, out found: bool, out value: int) {
+    if key == "a" {
+        found = true
+        value = 1
+    }
+    if key == "b" {
+        found = true
+        value = 2
+        return
+    }
+    value += 10
+}
+
+// A call gives its outputs as a record, read by name.
+fn Use(key: string) -> int {
+    let r = Lookup(key)
+    if r.found {
+        return r.value
+    }
+    return -1
+}
+
+// A pure function may have outputs, and one that returns a value gives it as ReturnValue.
+pure fn Divide(n: int, by: int, out remainder: int) -> int {
+    remainder = n % by
+    return n / by
+}
+
+fn Halves(n: int) -> int {
+    let d = Divide(n, 2)
+    return d.ReturnValue * 10 + d.remainder
+}

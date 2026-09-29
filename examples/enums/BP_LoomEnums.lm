@@ -1,0 +1,21 @@
+blueprint BP_LoomEnums : Actor at /Game/Loom/Examples/enums/BP_LoomEnums
+
+// An enum declared by another source, used by its name.
+editable var Holding: E_LoomTool = E_LoomTool.Hammer
+
+fn Cuts() -> bool {
+    return Holding == E_LoomTool.Saw
+}
+
+// Each value's number is its place in the enum.
+fn Place() -> int {
+    return int(Holding)
+}
+
+fn Sound() -> string {
+    return match Holding {
+        E_LoomTool.Hammer { "bang" }
+        E_LoomTool.Saw { "rasp" }
+        else { "tap" }
+    }
+}

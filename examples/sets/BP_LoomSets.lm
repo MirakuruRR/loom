@@ -1,0 +1,29 @@
+blueprint BP_LoomSets : Actor at /Game/Loom/Examples/sets/BP_LoomSets
+
+var Labels: set<name> = ["a", "b"]
+var Count: int = 0
+var Seen: string = ""
+var Has: bool = false
+var Same: bool = false
+
+fn Walk() {
+    Seen = ""
+    for tag in Labels {
+        Seen = Seen + string(tag)
+    }
+    Count = Labels.Length()
+}
+
+fn Change() {
+    Labels.Add("c")
+    Labels.Add("a")
+    Labels.Remove("b")
+    Has = Labels.Contains("c") && !Labels.Contains("b")
+    Walk()
+}
+
+fn Objects() {
+    let me: Actor = self
+    let nobody: Actor = none
+    Same = me == self && me != nobody && nobody == none
+}

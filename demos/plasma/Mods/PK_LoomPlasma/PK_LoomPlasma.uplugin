@@ -1,0 +1,6 @@
+{
+  "Name": "Loom Plasma",
+  "Description": "A loom demo: draws an animated plasma into a render target every frame and shows it in a window.",
+  "Version": "0.1",
+  "CreatedBy": "pierrekin"
+}

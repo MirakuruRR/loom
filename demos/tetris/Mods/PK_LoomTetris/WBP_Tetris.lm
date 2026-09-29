@@ -1,0 +1,8 @@
+blueprint WBP_Tetris : UserWidget at /Game/Mods/PK_LoomTetris/WBP_Tetris
+
+// A frame on the left of the screen: a title bar over the picture.
+widget Frame: Border(BrushColor: "#12131ae8") at 64 338 size 1048 794
+widget Title: TextBlock(Text: "Tetris.lm", ColorAndOpacity: "#e8e6ff") at 88 356 size 1000 40
+widget Board: Image at 88 408 size 560 700
+widget Score: TextBlock(ColorAndOpacity: "#e8e6ff") at 672 408 size 416 40
+widget Help: TextBlock(ColorAndOpacity: "#9a9cc0") at 672 480 size 416 300

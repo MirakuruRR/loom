@@ -1,0 +1,44 @@
+{
+ "blueprint": "/Game/Mods/PK_LoomMinimap/BP_MapLoad",
+ "cases": [
+  {
+   "name": "the next row",
+   "set": {
+    "Size": "4",
+    "Row": "0",
+    "Passes": "0"
+   },
+   "call": "NextRow",
+   "expect": {
+    "Row": "1",
+    "Passes": "0"
+   }
+  },
+  {
+   "name": "after the last row, back to the top",
+   "set": {
+    "Size": "4",
+    "Row": "3",
+    "Passes": "0"
+   },
+   "call": "NextRow",
+   "expect": {
+    "Row": "0",
+    "Passes": "1"
+   }
+  },
+  {
+   "name": "what the mod log says",
+   "set": {
+    "Row": "5",
+    "Passes": "1",
+    "RowsPerTick": "2",
+    "BuildMs": "0.5"
+   },
+   "call": "Status",
+   "expect": {
+    "return": "PK_LoomMinimap: row 5 of pass 2, 2 rows a frame, building takes 0.5 ms"
+   }
+  }
+ ]
+}

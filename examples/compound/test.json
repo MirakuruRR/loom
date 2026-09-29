@@ -1,0 +1,10 @@
+{
+  "blueprint": "/Game/Loom/Examples/compound/BP_LoomCompound",
+  "cases": [
+    {"name": "each arithmetic operator, applied and assigned", "call": "Arithmetic", "set": {"Count": "2"}, "args": {"x": "4"}, "expect": {"return": "3", "Count": "3"}},
+    {"name": "bitwise or and and", "call": "Bits", "expect": {"return": "5"}},
+    {"name": "a string added to", "call": "Shout", "expect": {"return": "go!", "Label": "go!"}},
+    {"name": "a struct's field, in place", "call": "Moved", "set": {"Where": "(X=1.000000,Y=0.000000)"}, "expect": {"return": "5.000000"}},
+    {"name": "an index computed once", "call": "Scaled", "set": {"Picks": "0", "Items": "(1,2,3)"}, "expect": {"return": "120", "Items": "(1,20,3)", "Picks": "1"}}
+  ]
+}

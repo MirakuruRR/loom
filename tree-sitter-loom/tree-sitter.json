@@ -1,0 +1,19 @@
+{
+  "grammars": [
+    {
+      "name": "loom",
+      "camelcase": "Loom",
+      "scope": "source.loom",
+      "path": ".",
+      "file-types": ["lm"],
+      "highlights": "queries/highlights.scm"
+    }
+  ],
+  "metadata": {
+    "version": "0.1.0",
+    "description": "loom, a language that compiles to Unreal Blueprints",
+    "links": {
+      "repository": "https://github.com/pierrekin/loom"
+    }
+  }
+}

@@ -1,0 +1,8 @@
+// Something that calls back later. An interface's function can take and return a delegate, as a
+// Blueprint's own function can.
+interface BPI_LoomTimed at /Game/Loom/Examples/timed/BPI_LoomTimed {
+    // Calls done after this many seconds.
+    fn Delay(seconds: float, done: TimerDynamicDelegate)
+    // What to call when the time comes.
+    fn Chosen() -> TimerDynamicDelegate
+}

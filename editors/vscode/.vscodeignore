@@ -1,0 +1,8 @@
+**
+!package.json
+!README.md
+!CHANGELOG.md
+!LICENSE.txt
+!language-configuration.json
+!dist/extension.js
+!dist/loom.tmLanguage.json

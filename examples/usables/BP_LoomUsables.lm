@@ -1,0 +1,28 @@
+blueprint BP_LoomUsables : Actor at /Game/Loom/Examples/usables/BP_LoomUsables
+implements BPI_LoomUsable
+
+var Uses: int = 0
+
+// A function that returns nothing is handled as an event.
+on Use(by: Actor, times: int) {
+    Uses = Uses + times
+}
+
+// One that returns a value is handled as a function.
+on CanUse(by: Actor) -> bool {
+    return Uses < 3
+}
+
+// Calls through the interface, on whatever implements it.
+fn UseTwice(thing: Object) -> bool {
+    let usable = cast(thing, BPI_LoomUsable)
+    if usable == none {
+        return false
+    }
+    usable.Use(self, 2)
+    return usable.CanUse(self)
+}
+
+fn UseSelf() -> bool {
+    return UseTwice(self)
+}

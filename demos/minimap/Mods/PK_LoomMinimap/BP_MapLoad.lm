@@ -1,0 +1,105 @@
+blueprint BP_MapLoad : Actor at /Game/Mods/PK_LoomMinimap/BP_MapLoad
+
+var Sys: ArcoSystems
+var Target: TextureRenderTarget2D
+var Tris: array<CanvasUVTri>
+// The map is Size by Size cells, each sampling one terrain cell in every Step.
+var Size: int = 128
+var Step: int = 4
+// The next map row to build, and how many each frame builds.
+var Row: int = 0
+var RowsPerTick: int = 2
+var Passes: int = 0
+// How long each frame spends building and drawing, in milliseconds, smoothed.
+var BuildMs: float = 0.0
+// Seconds since the mod log last heard how it is doing.
+var Since: float = 0.0
+
+on ReceiveBeginPlay {
+    SetTickableWhenPaused(true)
+    Target = KismetRenderingLibrary.CreateRenderTarget2D(128, 128)
+    let screen = create_widget(WBP_Map)
+    screen.AddToViewport(10)
+    screen.Map.SetBrushResourceObject(Target)
+}
+
+// The colour of one column of terrain: water by its depth, land by the height of its top.
+fn Colour(x: int, y: int) -> LinearColor {
+    let ex = Sys.m_terrain.Extent.X
+    let ey = Sys.m_terrain.Extent.Y
+    let ez = Sys.m_terrain.Extent.Z
+    let depth = int(Sys.m_terrain.Cells2D[x + y * ex].WaterDepth)
+    if depth > 0 {
+        let w = 1.0 - KismetMathLibrary.FMin(float(depth) / 12.0, 1.0)
+        return KismetMathLibrary.MakeColor(0.04, 0.12 + 0.25 * w, 0.28 + 0.35 * w)
+    }
+    let z = ez - 1
+    let top = -1
+    while z >= 0 && top < 0 {
+        let flags = int(Sys.m_terrain.Cells[x + y * ex + z * ex * ey].TypesAndFlags)
+        if flags & 32 != 0 {
+            top = z
+        }
+        z = z - 1
+    }
+    let h = float(top) / float(ez)
+    return KismetMathLibrary.MakeColor(0.25 + 0.75 * h * h, 0.3 + 0.6 * h, 0.18 + 0.75 * h * h)
+}
+
+// How far it has got, as the mod log reports it.
+fn Status() -> string {
+    return "PK_LoomMinimap: row " + string(Row) + " of pass " + string(Passes + 1) + ", " + string(RowsPerTick) + " rows a frame, building takes " + string(BuildMs) + " ms"
+}
+
+// On to the next row, and back to the top after the last, counting the passes.
+fn NextRow() {
+    Row = Row + 1
+    if Row >= Size {
+        Row = 0
+        Passes = Passes + 1
+    }
+}
+
+on ReceiveTick(dt: float) {
+    if !KismetSystemLibrary.IsValid(Sys) {
+        Sys = GameplayStatics.GetActorOfClass(ArcoSystems)
+        return
+    }
+    Since = Since + dt
+    if Since >= 10.0 {
+        Since = 0.0
+        ModAPI.GetModAPI().LogMessage(Status(), false)
+    }
+    let clock = GameplayStatics.GetAccurateRealTime()
+    let start = float(clock.Seconds) + clock.PartialSeconds
+    let ex = Sys.m_terrain.Extent.X
+    let ey = Sys.m_terrain.Extent.Y
+    Tris.Clear()
+    let n = 0
+    while n < RowsPerTick {
+        let mx = 0
+        while mx < Size {
+            let x = mx * Step
+            let y = Row * Step
+            let c = KismetMathLibrary.MakeColor(0.0, 0.0, 0.0)
+            if x < ex && y < ey {
+                c = Colour(x, y)
+            }
+            let left = float(mx)
+            let top = float(Row)
+            let a = Vector2D(X: left, Y: top)
+            let d = Vector2D(X: left + 1.0, Y: top + 1.0)
+            Tris.Add(CanvasUVTri(V0_Pos: a, V1_Pos: Vector2D(X: left + 1.0, Y: top), V2_Pos: d, V0_Color: c, V1_Color: c, V2_Color: c))
+            Tris.Add(CanvasUVTri(V0_Pos: a, V1_Pos: d, V2_Pos: Vector2D(X: left, Y: top + 1.0), V0_Color: c, V1_Color: c, V2_Color: c))
+            mx = mx + 1
+        }
+        NextRow()
+        n = n + 1
+    }
+    let draw = KismetRenderingLibrary.BeginDrawCanvasToRenderTarget(Target)
+    draw.Canvas.K2_DrawTriangle(none, Tris)
+    KismetRenderingLibrary.EndDrawCanvasToRenderTarget(draw.Context)
+    let now = GameplayStatics.GetAccurateRealTime()
+    let ms = (float(now.Seconds) + now.PartialSeconds - start) * 1000.0
+    BuildMs = BuildMs + (ms - BuildMs) * 0.05
+}

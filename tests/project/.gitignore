@@ -1,0 +1,4 @@
+# Everything but the .uproject is made or linked in by cargo xtask, or written by Unreal.
+/*
+!/.gitignore
+!/LoomTests.uproject
