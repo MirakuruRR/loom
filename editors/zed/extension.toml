@@ -12,7 +12,7 @@ repository = "https://github.com/pierrekin/loom"
 # loom's public repository names itself here instead, at the commit before the one holding this.
 [grammars.loom]
 repository = "https://github.com/pierrekin/loom"
-rev = "ade59c5ac7b08a3ddd9b139b3ea9479bd7b7c47e"
+rev = "5f2bb48b084f83f75736611e4fa7dddf12e68ab1"
 path = "tree-sitter-loom"
 
 # `loom lsp`, from the plugin in the project's Plugins, so that it is always the compiler the
