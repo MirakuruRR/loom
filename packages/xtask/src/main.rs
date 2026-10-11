@@ -278,8 +278,74 @@ fn launcher_engines(version: &str) -> Vec<PathBuf> {
         .collect()
 }
 
-/// Engines built from source and registered in Install.ini, with their keys. Windows keeps these in
-/// the registry instead, which this does not read.
+/// Engines built from source and registered in the registry, with their keys: a project's
+/// EngineAssociation names one, and its value is the folder the engine was built in.
+#[cfg(target_os = "windows")]
+fn registered_engines() -> Vec<(String, PathBuf)> {
+    use windows_sys::Win32::Foundation::{ERROR_MORE_DATA, ERROR_SUCCESS};
+    use windows_sys::Win32::System::Registry::{HKEY, HKEY_CURRENT_USER, KEY_READ, RegCloseKey, RegEnumValueW, RegOpenKeyExW};
+
+    /// A string as the wide, null-terminated form a `…W` function takes.
+    fn wide(text: &str) -> Vec<u16> {
+        text.encode_utf16().chain(std::iter::once(0)).collect()
+    }
+
+    /// What a key holds: each value's name, which is an EngineAssociation, and its text.
+    fn values(key: HKEY) -> Vec<(String, String)> {
+        let mut found = Vec::new();
+        let mut index = 0u32;
+        loop {
+            let mut name = [0u16; 256];
+            let mut name_length = name.len() as u32;
+            let mut kind = 0u32;
+            let mut length = 0u32;
+            // SAFETY: a null buffer asks how long the value is, and changes nothing.
+            let asked = unsafe {
+                RegEnumValueW(key, index, name.as_mut_ptr(), &mut name_length, std::ptr::null(), &mut kind, std::ptr::null_mut(), &mut length)
+            };
+            if asked != ERROR_SUCCESS && asked != ERROR_MORE_DATA {
+                break;
+            }
+            // One value is read in two calls: the first asks how long its text is, the second reads
+            // it. Each call wants its own buffer's length, so the name's is set again for the second.
+            let mut data = vec![0u8; length as usize + 2];
+            name_length = name.len() as u32;
+            // SAFETY: the buffers are as long as the lengths the call above gave.
+            let read = unsafe {
+                RegEnumValueW(key, index, name.as_mut_ptr(), &mut name_length, std::ptr::null(), &mut kind, data.as_mut_ptr(), &mut length)
+            };
+            index += 1;
+            if read != ERROR_SUCCESS {
+                continue;
+            }
+            data.truncate(length as usize);
+            let association = String::from_utf16_lossy(&name[..name_length as usize]);
+            let text: Vec<u16> = data.chunks_exact(2).map(|pair| u16::from_le_bytes([pair[0], pair[1]])).collect();
+            let path = String::from_utf16_lossy(&text);
+            let path = path.trim_end_matches('\0').trim();
+            if !association.is_empty() && !path.is_empty() {
+                found.push((association, path.to_string()));
+            }
+        }
+        found
+    }
+
+    let mut found = Vec::new();
+    let mut builds: HKEY = std::ptr::null_mut();
+    // SAFETY: the subkey is a live wide string, and the key is closed once it has been read.
+    let opened = unsafe {
+        RegOpenKeyExW(HKEY_CURRENT_USER, wide(r"Software\Epic Games\Unreal Engine\Builds").as_ptr(), 0, KEY_READ, &mut builds)
+    };
+    if opened == ERROR_SUCCESS {
+        found.extend(values(builds).into_iter().map(|(association, path)| (association, PathBuf::from(path))));
+        // SAFETY: the key was opened just above, and is closed once.
+        unsafe { RegCloseKey(builds) };
+    }
+    found
+}
+
+/// Engines built from source and registered in Install.ini, with their keys.
+#[cfg(not(target_os = "windows"))]
 fn registered_engines() -> Vec<(String, PathBuf)> {
     let Some(home) = std::env::var_os("HOME").map(PathBuf::from) else { return Vec::new() };
     let ini = if cfg!(target_os = "macos") {
@@ -448,6 +514,12 @@ fn build_plugin(unreal: &Unreal, out: &Path) -> Result<()> {
     for scratch in ["HostProject", "Intermediate"] {
         let _ = std::fs::remove_dir_all(out.join(scratch));
     }
+    // One version names every package, the workspace's. The build names itself the same, so the
+    // editor and the compiler never report two versions of one Loom.
+    let manifest = out.join("LoomEditor.uplugin");
+    let mut plugin: Value = serde_json::from_str(&std::fs::read_to_string(&manifest)?)?;
+    plugin["VersionName"] = Value::String(env!("CARGO_PKG_VERSION").to_string());
+    std::fs::write(&manifest, serde_json::to_string_pretty(&plugin)? + "\n")?;
     Ok(())
 }
 

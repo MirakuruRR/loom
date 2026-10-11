@@ -239,6 +239,15 @@ pub const FUNCTIONS: &[Function] = &[
         example: "fn F() -> text {\n    return text(Title)\n}",
     },
     Function {
+        name: "format",
+        signature: "format(pattern, value, ...) -> text",
+        doc: "The `text` pattern with each `{0}`, `{1}` and so on replaced by the value of that \
+              place, as the engine's own Format does. The pattern comes first, then one value per \
+              place: text and strings go in as they are, numbers as numbers, and anything else that \
+              can be shown as text is converted.",
+        example: "fn F() -> text {\n    return format(\"{0} of {1}\", Lives, float(Lives))\n}",
+    },
+    Function {
         name: "cast",
         signature: "cast(value, Class or Interface) -> Class or Interface",
         doc: "The object if it is of the class, and `none` otherwise. With a `class<T>`, the class if it \
@@ -380,7 +389,7 @@ const fn string(op: BinaryOp, function: &'static str, returns: Kind) -> Operator
 
 pub const OPERATORS: &[Operator] = {
     use BinaryOp::*;
-    use Kind::{Bool, Byte, Enum, Float, Int, Name, Object, Str};
+    use Kind::{Bool, Byte, Enum, Float, Int, Int64, Name, Object, Str};
     &[
         math(Add, Int, "Add_IntInt", Int),
         math(Sub, Int, "Subtract_IntInt", Int),
@@ -395,6 +404,20 @@ pub const OPERATORS: &[Operator] = {
         math(Ne, Int, "NotEqual_IntInt", Bool),
         math(BitAnd, Int, "And_IntInt", Int),
         math(BitOr, Int, "Or_IntInt", Int),
+        // A 64-bit whole number, which an int does not widen to: `Add_Int64Int64` and its like.
+        math(Add, Int64, "Add_Int64Int64", Int64),
+        math(Sub, Int64, "Subtract_Int64Int64", Int64),
+        math(Mul, Int64, "Multiply_Int64Int64", Int64),
+        math(Div, Int64, "Divide_Int64Int64", Int64),
+        math(Rem, Int64, "Percent_Int64Int64", Int64),
+        math(Lt, Int64, "Less_Int64Int64", Bool),
+        math(Le, Int64, "LessEqual_Int64Int64", Bool),
+        math(Gt, Int64, "Greater_Int64Int64", Bool),
+        math(Ge, Int64, "GreaterEqual_Int64Int64", Bool),
+        math(Eq, Int64, "EqualEqual_Int64Int64", Bool),
+        math(Ne, Int64, "NotEqual_Int64Int64", Bool),
+        math(BitAnd, Int64, "And_Int64Int64", Int64),
+        math(BitOr, Int64, "Or_Int64Int64", Int64),
         math(Add, Float, "Add_DoubleDouble", Float),
         math(Sub, Float, "Subtract_DoubleDouble", Float),
         math(Mul, Float, "Multiply_DoubleDouble", Float),
@@ -439,6 +462,7 @@ pub struct Unary {
 
 pub const UNARY: &[Unary] = &[
     Unary { op: UnaryOp::Neg, on: Kind::Int, function: "Subtract_IntInt", zero_first: true },
+    Unary { op: UnaryOp::Neg, on: Kind::Int64, function: "Subtract_Int64Int64", zero_first: true },
     Unary { op: UnaryOp::Neg, on: Kind::Float, function: "Subtract_DoubleDouble", zero_first: true },
     Unary { op: UnaryOp::Not, on: Kind::Bool, function: "Not_PreBool", zero_first: false },
 ];
@@ -446,6 +470,171 @@ pub const UNARY: &[Unary] = &[
 pub fn unary(op: UnaryOp, on: &Ty) -> Option<&'static Unary> {
     let on = Kind::of(on)?;
     UNARY.iter().find(|u| u.op == op && u.on == on)
+}
+
+/// How the language writes a kind on its own: `float`, and not the reference's "`float`". A kind
+/// that is never written alone, such as an object, is named in words.
+fn written_kind(kind: Kind) -> &'static str {
+    match kind {
+        Kind::Bool => "bool",
+        Kind::Byte => "byte",
+        Kind::Int => "int",
+        Kind::Int64 => "int64",
+        Kind::Float => "float",
+        Kind::Str => "string",
+        Kind::Name => "name",
+        Kind::Text => "text",
+        Kind::Object => "an object",
+        Kind::Class => "a class",
+        Kind::Enum => "an enum",
+        Kind::SoftObject => "a soft reference",
+        Kind::SoftClass => "a soft class reference",
+    }
+}
+
+/// The structures whose operators the tables below have: `/Script/CoreUObject.Vector`, and the two
+/// beside it that the engine's math library does the same arithmetic for.
+const VECTOR: &str = "/Script/CoreUObject.Vector";
+const VECTOR2D: &str = "/Script/CoreUObject.Vector2D";
+const ROTATOR: &str = "/Script/CoreUObject.Rotator";
+
+/// What an operator for a structure gives: the structure again, as `+` does, or a value of another
+/// kind, as `==` gives a `bool`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StructResult {
+    Same,
+    Kind(Kind),
+}
+
+/// An operator for values of a structure, made by a library function: `A + B`, `A * float` and the
+/// like. A structure is not a [`Kind`], so these are not in [`OPERATORS`], which is keyed by kind;
+/// [`struct_operator`] looks one up among them.
+pub struct StructOperator {
+    pub op: BinaryOp,
+    /// The structure's path, such as /Script/CoreUObject.Vector.
+    pub on: &'static str,
+    /// The kind of the other side, or None when it is a value of the same structure.
+    pub with: Option<Kind>,
+    pub class: &'static str,
+    pub function: &'static str,
+    pub returns: StructResult,
+}
+
+const fn math_struct(
+    op: BinaryOp,
+    on: &'static str,
+    with: Option<Kind>,
+    function: &'static str,
+    returns: StructResult,
+) -> StructOperator {
+    StructOperator { op, on, with, class: MATH, function, returns }
+}
+
+pub const STRUCT_OPERATORS: &[StructOperator] = {
+    use BinaryOp::*;
+    use Kind::{Bool, Float};
+    use StructResult::{Kind as Gives, Same};
+    &[
+        // A vector with a vector, and with a float, which every part of it takes: what the engine's
+        // own Vector + Float node does. There is no Subtract_VectorFloat, so `v - 2.0` is not one.
+        math_struct(Add, VECTOR, None, "Add_VectorVector", Same),
+        math_struct(Sub, VECTOR, None, "Subtract_VectorVector", Same),
+        math_struct(Mul, VECTOR, None, "Multiply_VectorVector", Same),
+        math_struct(Div, VECTOR, None, "Divide_VectorVector", Same),
+        math_struct(Add, VECTOR, Some(Float), "Add_VectorFloat", Same),
+        math_struct(Mul, VECTOR, Some(Float), "Multiply_VectorFloat", Same),
+        math_struct(Div, VECTOR, Some(Float), "Divide_VectorFloat", Same),
+        // Equality is the engine's, within its default tolerance, which a call need not give.
+        math_struct(Eq, VECTOR, None, "EqualEqual_VectorVector", Gives(Bool)),
+        math_struct(Ne, VECTOR, None, "NotEqual_VectorVector", Gives(Bool)),
+        // The same for the two-dimensional vector.
+        math_struct(Add, VECTOR2D, None, "Add_Vector2DVector2D", Same),
+        math_struct(Sub, VECTOR2D, None, "Subtract_Vector2DVector2D", Same),
+        math_struct(Mul, VECTOR2D, None, "Multiply_Vector2DVector2D", Same),
+        math_struct(Div, VECTOR2D, None, "Divide_Vector2DVector2D", Same),
+        math_struct(Add, VECTOR2D, Some(Float), "Add_Vector2DFloat", Same),
+        math_struct(Mul, VECTOR2D, Some(Float), "Multiply_Vector2DFloat", Same),
+        math_struct(Div, VECTOR2D, Some(Float), "Divide_Vector2DFloat", Same),
+        math_struct(Eq, VECTOR2D, None, "EqualEqual_Vector2DVector2D", Gives(Bool)),
+        math_struct(Ne, VECTOR2D, None, "NotEqual_Vector2DVector2D", Gives(Bool)),
+        // A rotation takes a float and compares, but the engine has no Add_RotatorRotator to add
+        // two of them: a rotation is made from angles instead, with MakeRotator.
+        math_struct(Mul, ROTATOR, Some(Float), "Multiply_RotatorFloat", Same),
+        math_struct(Eq, ROTATOR, None, "EqualEqual_RotatorRotator", Gives(Bool)),
+        math_struct(Ne, ROTATOR, None, "NotEqual_RotatorRotator", Gives(Bool)),
+    ]
+};
+
+/// Whether an operator gives the same answer with its sides traded, so a structure on the right may
+/// be given first. `+` and `*` do; `-` and `/` do not.
+fn commutative(op: BinaryOp) -> bool {
+    use BinaryOp::{Add, Eq, Mul, Ne};
+    matches!(op, Add | Mul | Eq | Ne)
+}
+
+/// An operator for two values, at least one of them a structure, and the library function that
+/// does it, or None when the structure has no such operator — which is what an error says. The
+/// second value is true when the structure stands on the right, so the call is given `(right,
+/// left)` as its own A and B: `2.0 * Reach` calls `Multiply_VectorFloat(Reach, 2.0)`. Only an
+/// operator whose sides may trade places is found that way, so `2.0 / Reach` is nothing, as the
+/// engine has no `Divide_FloatVector`.
+pub fn struct_operator(op: BinaryOp, left: &Ty, right: &Ty) -> Option<(&'static StructOperator, bool)> {
+    fn structure(ty: &Ty) -> Option<&str> {
+        match ty {
+            Ty::Struct(path) => Some(path.as_str()),
+            _ => None,
+        }
+    }
+    // Whether this record is the one for these two sides: `on` is the structure it is for, and the
+    // other side is the same structure or the kind the record says.
+    let fits = |record: &StructOperator, on: &Ty, other: &Ty| {
+        structure(on) == Some(record.on)
+            && match record.with {
+                None => structure(other) == Some(record.on),
+                Some(kind) => Kind::of(other) == Some(kind),
+            }
+    };
+    if let Some(record) = STRUCT_OPERATORS.iter().find(|r| r.op == op && fits(r, left, right)) {
+        return Some((record, false));
+    }
+    if commutative(op) {
+        if let Some(record) = STRUCT_OPERATORS.iter().find(|r| r.op == op && fits(r, right, left)) {
+            return Some((record, true));
+        }
+    }
+    None
+}
+
+/// The operators one structure has, as an error lists them for someone who used another: `A + B`,
+/// `A * float`. Empty when the structure has none.
+pub fn struct_operators_of(on: &str) -> Vec<String> {
+    STRUCT_OPERATORS
+        .iter()
+        .filter(|r| r.on == on)
+        .map(|r| match r.with {
+            None => format!("A {} B", r.op.symbol()),
+            Some(kind) => format!("A {} {}", r.op.symbol(), written_kind(kind)),
+        })
+        .collect()
+}
+
+/// `-x` for a structure. Unlike a binary operator there is nothing to say but which function, and
+/// it always gives the same structure back.
+pub struct StructUnary {
+    pub op: UnaryOp,
+    pub on: &'static str,
+    pub class: &'static str,
+    pub function: &'static str,
+}
+
+pub const STRUCT_UNARY: &[StructUnary] = &[
+    StructUnary { op: UnaryOp::Neg, on: VECTOR, class: MATH, function: "NegateVector" },
+    StructUnary { op: UnaryOp::Neg, on: ROTATOR, class: MATH, function: "NegateRotator" },
+];
+
+pub fn struct_unary(op: UnaryOp, on: &Ty) -> Option<&'static StructUnary> {
+    let Ty::Struct(path) = on else { return None };
+    STRUCT_UNARY.iter().find(|u| u.op == op && u.on == path)
 }
 
 #[cfg(test)]
@@ -695,8 +884,11 @@ mod page {
         );
 
         out.push_str(
-            "\nBoth sides of an operator have the same type, and what each operator takes is below. \
-             `&&` and `||` compute both sides, so neither may contain a call that does something.\n\n\
+            "\nBoth sides of an operator are the same type, but where the table says two, as \
+             `Vector` and `float` for `Reach * 2.0`: a structure's operators are the engine's own \
+             functions, and a structure is not one of the plain kinds. The table says what each \
+             operator takes. `&&` and `||` compute both sides, so neither may contain a call that \
+             does something.\n\n\
              | Operator | Takes | Gives | Calls |\n| --- | --- | --- | --- |\n",
         );
         for (symbol, op, ..) in BINARY_OPERATORS {
@@ -707,12 +899,34 @@ mod page {
                 };
                 writeln!(out, "| `{}` | {} | {gives} | {calls} |", symbol.replace('|', "\\|"), o.on.describe()).unwrap();
             }
+            for o in STRUCT_OPERATORS.iter().filter(|o| o.op == *op) {
+                let on = format!("`{}`", short(o.on));
+                let takes = match o.with {
+                    None => format!("{on} and {on}"),
+                    Some(kind) => format!("{on} and {}", kind.describe()),
+                };
+                let gives = match o.returns {
+                    StructResult::Same => on.clone(),
+                    StructResult::Kind(kind) => kind.describe().to_string(),
+                };
+                writeln!(out, "| `{}` | {takes} | {gives} | `{}.{}` |", symbol.replace('|', "\\|"), short(o.class), o.function).unwrap();
+            }
         }
         for u in UNARY {
             writeln!(out, "| `{}x` | {} | {} | `KismetMathLibrary.{}`{} |", u.op.symbol(), u.on.describe(), u.on.describe(), u.function, if u.zero_first { ", as `0 - x`" } else { "" }).unwrap();
         }
+        for u in STRUCT_UNARY {
+            let on = format!("`{}`", short(u.on));
+            writeln!(out, "| `{}x` | {on} | {on} | `{}.{}` |", u.op.symbol(), short(u.class), u.function).unwrap();
+        }
         out.push('\n');
-        out.push_str(&block(&["let playing = Alive && Lives > 0", "let doubled = Speed * 2.0", "let greeting = Title + \"!\"", "let aimed = Target != none"]));
+        out.push_str(&block(&[
+            "let playing = Alive && Lives > 0",
+            "let doubled = Speed * 2.0",
+            "let greeting = Title + \"!\"",
+            "let aimed = Target != none",
+            "let wider = Seed + Seed",
+        ]));
         out
     }
 
@@ -726,5 +940,159 @@ mod page {
         }
         let want = std::fs::read_to_string(&path).unwrap_or_default();
         assert!(got == want, "reference/builtins.md is not what packages/loom/src/builtins.rs says; run LOOM_BLESS=1 cargo test");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeSet;
+
+    use serde_json::Value;
+
+    use super::*;
+
+    /// The engine's types, as the dump spells them.
+    fn engine() -> Value {
+        serde_json::from_str(crate::fixtures::engine()).expect("the engine's types are json")
+    }
+
+    /// One library function's parameters, as the dump has them.
+    fn params<'a>(engine: &'a Value, class: &str, function: &str) -> &'a Vec<Value> {
+        let functions = &engine["classes"][class]["functions"];
+        assert!(!functions.is_null(), "{class} is not in the engine's types");
+        let dumped = &functions[function];
+        assert!(!dumped.is_null(), "{class} has no {function}");
+        dumped["params"].as_array().unwrap_or_else(|| panic!("{function} has no parameters"))
+    }
+
+    /// Whether a dumped type is the one the table wants. Loom's float is as wide as the function's:
+    /// the dump writes a 32-bit one as `float32`, and `Ty::from_dump` reads both as `float`.
+    fn same_type(got: &str, want: &str) -> bool {
+        got == want || (want == "float" && got == "float32")
+    }
+
+    /// The dumped type of a kind that is a whole type on its own.
+    fn kind_type(kind: Kind) -> &'static str {
+        match kind {
+            Kind::Bool => "bool",
+            Kind::Byte => "byte",
+            Kind::Int => "int",
+            Kind::Int64 => "int64",
+            Kind::Float => "float",
+            Kind::Str => "string",
+            Kind::Name => "name",
+            Kind::Text => "text",
+            Kind::Object | Kind::Class | Kind::Enum | Kind::SoftObject | Kind::SoftClass => panic!("no table takes {kind:?} here"),
+        }
+    }
+
+    /// Checks one library call against the dump: the class really has the function, its inputs are
+    /// `wanted`, in order and with the types wanted, and its return value is what the table says.
+    /// Every input beyond those must be one a call may leave out, as EqualEqual_VectorVector's
+    /// ErrorTolerance is, since the lowering gives the call only the two sides.
+    fn checked(engine: &Value, class: &str, function: &str, wanted: &[(&str, &str)], returns: &str) {
+        let params = params(engine, class, function);
+        let inputs: Vec<&Value> = params.iter().filter(|p| p["dir"] != "return").collect();
+        assert!(inputs.len() >= wanted.len(), "{function} takes {} inputs, fewer than {}", inputs.len(), wanted.len());
+        for (param, (name, ty)) in inputs.iter().zip(wanted) {
+            assert_eq!(param["name"], *name, "{function} takes {:?} where the table says {name}", param["name"]);
+            let got = param["type"].as_str().unwrap_or("?");
+            assert!(same_type(got, ty), "{function}'s {name} is {got}, not {ty}");
+        }
+        for param in &inputs[wanted.len()..] {
+            assert!(param["default"].is_string(), "{function}'s {} has no default, so a call must give it", param["name"]);
+        }
+        let returned = params.iter().find(|p| p["dir"] == "return").unwrap_or_else(|| panic!("{function} gives nothing"));
+        let got = returned["type"].as_str().unwrap_or("?");
+        assert!(same_type(got, returns), "{function} gives {got}, not {returns}");
+    }
+
+    fn vector() -> Ty {
+        Ty::Struct(VECTOR.to_string())
+    }
+
+    /// Every Int64 operator the tables give is a function the engine really has: two 64-bit inputs
+    /// and what the table says back.
+    #[test]
+    fn every_int64_operator_is_an_engine_function() {
+        let engine = engine();
+        let int64: Vec<&Operator> = OPERATORS.iter().filter(|o| o.on == Kind::Int64).collect();
+        assert!(int64.len() >= 13, "the tables give Int64 {} operators", int64.len());
+        for o in int64 {
+            let Lowering::Library { class, function, returns } = &o.lowering else {
+                panic!("the Int64 {} is not a library call", o.op.symbol());
+            };
+            checked(&engine, class, function, &[("A", "int64"), ("B", "int64")], kind_type(*returns));
+        }
+    }
+
+    /// Every unary operator the tables give is an engine function too, taking one input or, when
+    /// it is lowered as `0 - x`, two.
+    #[test]
+    fn every_unary_operator_is_an_engine_function() {
+        let engine = engine();
+        for u in UNARY {
+            let ty = kind_type(u.on);
+            let wanted: Vec<(&str, &str)> = if u.zero_first { vec![("A", ty), ("B", ty)] } else { vec![("A", ty)] };
+            checked(&engine, MATH, u.function, &wanted, ty);
+        }
+        for u in STRUCT_UNARY {
+            let ty = format!("struct:{}", u.on);
+            checked(&engine, u.class, u.function, &[("A", &ty)], &ty);
+        }
+    }
+
+    /// Every operator the tables give a structure is an engine function taking the sides the table
+    /// says and giving what it says, with whatever else it takes left out of the call.
+    #[test]
+    fn every_struct_operator_is_an_engine_function() {
+        let engine = engine();
+        let structures: BTreeSet<&str> = STRUCT_OPERATORS.iter().map(|o| o.on).collect();
+        assert!(structures.contains(VECTOR) && structures.contains(ROTATOR), "the structures the feedback asked for are not in the tables");
+        for o in STRUCT_OPERATORS {
+            let on = format!("struct:{}", o.on);
+            let with = match o.with {
+                None => on.clone(),
+                Some(kind) => kind_type(kind).to_string(),
+            };
+            let gives = match o.returns {
+                StructResult::Same => on.clone(),
+                StructResult::Kind(kind) => kind_type(kind).to_string(),
+            };
+            checked(&engine, o.class, o.function, &[("A", &on), ("B", &with)], &gives);
+        }
+    }
+
+    /// A structure on the right of an operator is given the call first only where the sides may
+    /// trade places, which is why `2.0 * Reach` is a call and `2.0 / Reach` is nothing at all.
+    #[test]
+    fn a_structure_on_the_right_trades_places_only_where_it_may() {
+        let (record, swapped) = struct_operator(BinaryOp::Mul, &Ty::Float, &vector()).expect("a float times a vector");
+        assert_eq!(record.function, "Multiply_VectorFloat");
+        assert!(swapped, "the vector comes second in the source and first in the call");
+        let (record, swapped) = struct_operator(BinaryOp::Mul, &vector(), &Ty::Float).expect("a vector times a float");
+        assert_eq!(record.function, "Multiply_VectorFloat");
+        assert!(!swapped);
+        assert!(struct_operator(BinaryOp::Div, &Ty::Float, &vector()).is_none(), "the engine has no Divide_FloatVector");
+        let (record, swapped) = struct_operator(BinaryOp::Sub, &vector(), &vector()).expect("a vector less a vector");
+        assert_eq!(record.function, "Subtract_VectorVector");
+        assert!(!swapped, "two of the same structure are A and B as they stand");
+        let rotator = Ty::Struct(ROTATOR.to_string());
+        assert!(struct_operator(BinaryOp::Add, &rotator, &rotator).is_none(), "the engine has no Add_RotatorRotator");
+        assert!(struct_operator(BinaryOp::Add, &vector(), &rotator).is_none(), "there is no vector plus rotator");
+        assert_eq!(struct_operator(BinaryOp::Mul, &rotator, &Ty::Float).map(|(o, _)| o.function), Some("Multiply_RotatorFloat"));
+    }
+
+    /// The operators of one structure, as an error lists them, and the negations that are unary.
+    #[test]
+    fn the_operators_of_a_structure_are_listed_as_they_are_written() {
+        assert_eq!(
+            struct_operators_of(VECTOR),
+            vec!["A + B", "A - B", "A * B", "A / B", "A + float", "A * float", "A / float", "A == B", "A != B"]
+        );
+        assert_eq!(struct_operators_of(ROTATOR), vec!["A * float", "A == B", "A != B"]);
+        assert!(struct_operators_of("/Game/Nope.Nope").is_empty());
+        assert_eq!(struct_unary(UnaryOp::Neg, &vector()).map(|u| u.function), Some("NegateVector"));
+        assert!(struct_unary(UnaryOp::Not, &vector()).is_none());
     }
 }

@@ -103,10 +103,7 @@ impl Compiled {
         if self.blueprints.is_empty() {
             return Ok(());
         }
-        let file_of = |class: &str| {
-            let package = class.split_once('.').map_or(class, |(package, _)| package);
-            format!("{}.json", package.trim_start_matches('/'))
-        };
+        let file_of = |class: &str| format!("{}.json", package_of(class).trim_start_matches('/'));
         let docs: Vec<(&str, String)> = self.blueprints.iter().map(|(_, class, doc)| (class.as_str(), doc.to_json())).collect();
         for (class, ops) in &docs {
             let out = out_dir.join(file_of(class));
@@ -116,19 +113,9 @@ impl Compiled {
 
         // A Blueprint uses another, or an enum, when its ops name the other's class or the enum.
         // Each is applied after those it uses, since its nodes refer to them.
-        let mut order: Vec<&str> = Vec::new();
-        while order.len() < docs.len() {
-            let next = docs.iter().find(|(class, ops)| {
-                !order.contains(class)
-                    && docs.iter().all(|(other, _)| other == class || order.contains(other) || !ops.contains(*other))
-            });
-            match next {
-                Some((class, _)) => order.push(class),
-                None => {
-                    let left: Vec<&str> = docs.iter().map(|(class, _)| *class).filter(|class| !order.contains(class)).collect();
-                    bail!("these Blueprints use each other in a cycle: {}", left.join(", "))
-                }
-            }
+        let (order, cycles) = build_order(&docs);
+        if let Some(cycle) = cycles.first() {
+            bail!("{}", cycle_message(&docs, cycle));
         }
         let manifest = serde_json::json!({
             "version": env!("CARGO_PKG_VERSION"),
@@ -137,6 +124,142 @@ impl Compiled {
         std::fs::write(out_dir.join("build.json"), serde_json::to_string_pretty(&manifest)? + "\n")?;
         Ok(())
     }
+}
+
+/// The package a class path is in: `/Game/X/BP_A` from `/Game/X/BP_A.BP_A_C`.
+fn package_of(class: &str) -> &str {
+    class.split_once('.').map_or(class, |(package, _)| package)
+}
+
+/// A Blueprint uses another, or an enum, when its ops name the other's class or the enum, and is
+/// built after it, since its nodes refer to it. `docs` is each Blueprint's class and its ops as
+/// JSON. The order is every class, each after those it uses. The cycles are the Blueprints that use
+/// each other so that no such order exists: each a chain of classes where each uses the next, and
+/// the last uses the first, which [`walk_cycle`] takes one at a time from what is left.
+fn build_order<'a>(docs: &[(&'a str, String)]) -> (Vec<&'a str>, Vec<Vec<&'a str>>) {
+    let mut order: Vec<&str> = Vec::new();
+    // What a cycle already found holds: what uses it is ordered after it anyway.
+    let mut cyclic: Vec<&str> = Vec::new();
+    let mut cycles: Vec<Vec<&str>> = Vec::new();
+    loop {
+        let next = docs.iter().find(|(class, ops)| {
+            !order.contains(class)
+                && !cyclic.contains(class)
+                && docs.iter().all(|(other, _)| {
+                    other == class || order.contains(other) || cyclic.contains(other) || !ops.contains(*other)
+                })
+        });
+        if let Some((class, _)) = next {
+            order.push(class);
+            continue;
+        }
+        let left: Vec<&str> = docs
+            .iter()
+            .map(|(class, _)| *class)
+            .filter(|class| !order.contains(class) && !cyclic.contains(class))
+            .collect();
+        if left.is_empty() {
+            return (order, cycles);
+        }
+        let cycle = walk_cycle(docs, &left);
+        cyclic.extend(cycle.iter().copied());
+        cycles.push(cycle);
+    }
+}
+
+/// One cycle among the classes `left`, none of which can be ordered: from the first, each uses the
+/// next, until the walk comes back onto a class it has walked through, which is the cycle. Every
+/// class there uses one that is there too — one that used only ordered classes would be ordered.
+fn walk_cycle<'a>(docs: &[(&'a str, String)], left: &[&'a str]) -> Vec<&'a str> {
+    let uses = |class: &str, other: &str| docs.iter().any(|(c, ops)| *c == class && ops.contains(other));
+    let mut path: Vec<&str> = vec![left[0]];
+    loop {
+        let current = *path.last().expect("the walk starts at a class");
+        // Unreachable, and a class of its own is better named than none if it ever is.
+        let Some(next) = left.iter().copied().find(|other| *other != current && uses(current, *other)) else {
+            return path;
+        };
+        if let Some(at) = path.iter().position(|class| *class == next) {
+            return path[at..].to_vec();
+        }
+        path.push(next);
+    }
+}
+
+/// What to say about Blueprints that use each other in a cycle: which uses which, round it. A class
+/// is named as source names it, by its short name, unless the project holds more than one of that
+/// name, when its path is the only name that says which.
+fn cycle_message(docs: &[(&str, String)], cycle: &[&str]) -> String {
+    let name = |class: &str| {
+        let short = short_name(class);
+        let shared = docs.iter().filter(|(other, _)| short_name(other) == short).count() > 1;
+        if shared { class.to_string() } else { short.to_string() }
+    };
+    let uses: Vec<String> = (0..cycle.len()).map(|i| format!("{} uses {}", name(cycle[i]), name(cycle[(i + 1) % cycle.len()]))).collect();
+    let message = match uses.as_slice() {
+        [] => String::new(),
+        [one] => one.clone(),
+        [rest @ .., last] => format!("{}, and {last}", rest.join(", ")),
+    };
+    format!("these Blueprints use each other in a cycle: {message}")
+}
+
+/// `a`, `a and b`, `a, b and c`.
+fn and_list(items: &[String]) -> String {
+    match items {
+        [] => String::new(),
+        [one] => one.clone(),
+        [rest @ .., last] => format!("{} and {last}", rest.join(", ")),
+    }
+}
+
+/// The names a source that didn't parse would have declared, as far as they can be told without
+/// parsing it: the name on its header line, and its file's name, which is the one a Blueprint,
+/// struct or enum beside it has.
+fn unparsed_names(source: &Source, unsaved: Option<&str>) -> Vec<String> {
+    let text = match unsaved {
+        Some(text) => Some(text.to_string()),
+        None => std::fs::read_to_string(&source.path).ok(),
+    };
+    let mut names: Vec<String> = Vec::new();
+    if let Some(name) = text.as_deref().and_then(header_name) {
+        names.push(name);
+    }
+    if let Some(name) = source.package.rsplit('/').next() {
+        if !names.iter().any(|held| held == name) {
+            names.push(name.to_string());
+        }
+    }
+    names
+}
+
+/// The name a source's header line gives, `blueprint BP_A : Actor at /Game/X/BP_A`, read without
+/// parsing it: the word after its kind, and after `editor` for an editor Blueprint. None when the
+/// line isn't there or isn't a header.
+fn header_name(text: &str) -> Option<String> {
+    let line = text.lines().map(str::trim).find(|line| !line.is_empty() && !line.starts_with("//"))?;
+    let mut words = line.split_whitespace();
+    let mut kind = words.next()?;
+    if kind == "editor" {
+        kind = words.next()?;
+    }
+    if !matches!(kind, "blueprint" | "enum" | "struct" | "interface") {
+        return None;
+    }
+    words.next().map(str::to_string)
+}
+
+/// Whether an error is only the knock-on of a source that didn't parse: it names a type that source
+/// would have declared, which this compile never declared. Such an error says nothing about the
+/// source it is in, and the syntax error that caused it is reported instead.
+fn is_knock_on(error: &Error, unparsed: &[String]) -> bool {
+    unparsed.iter().any(|name| error.message.contains(&format!("unknown type '{name}'")))
+}
+
+/// What the types are missing, less the names of the sources that didn't parse: those are the
+/// project's own, so a check does not ask the plugin to go looking for them in the game.
+fn missing_names(db: &types::TypeDb, unparsed: &[String]) -> Vec<String> {
+    db.missing().into_iter().filter(|name| !unparsed.contains(name)).collect()
 }
 
 impl Check {
@@ -257,6 +380,9 @@ impl Project {
             .with_context(|| format!("reading {}", self.types_path().display()))?;
 
         let mut files = Vec::new();
+        // The names the sources that didn't parse would have declared. An error that names one of
+        // them is the syntax error's knock-on, not its own source's fault.
+        let mut unparsed: Vec<String> = Vec::new();
         for source in &sources {
             let parsed = match unsaved.get(&source.path) {
                 Some(text) => syntax::parse_text(text, &source.path),
@@ -277,24 +403,61 @@ impl Project {
                     )
                 }),
                 Ok(file) => files.push((source, file)),
-                Err(error) => errors.push(Error::from_compiler(&source.file, &error)),
+                Err(error) => {
+                    for name in unparsed_names(source, unsaved.get(&source.path).map(String::as_str)) {
+                        if !unparsed.contains(&name) {
+                            unparsed.push(name);
+                        }
+                    }
+                    errors.push(Error::from_compiler(&source.file, &error));
+                }
             }
         }
-        // Each source is declared to the others, so all of them must have parsed.
-        if !errors.is_empty() {
-            return finish(errors, blueprints, db.missing());
+        // A source that didn't parse cannot be declared or lowered, but the others can, so they are,
+        // and the check reports their errors beside the syntax error: stopping at the first one
+        // hides every type error in the project until it is fixed.
+        if files.is_empty() {
+            return finish(errors, blueprints, missing_names(&db, &unparsed));
         }
         let parsed: Vec<syntax::Source> = files.iter().map(|(_, f)| f.clone()).collect();
         if let Err(declare) = lower::declare(&parsed, &mut db) {
-            return finish(vec![Error::from_compiler(&files[declare.file].0.file, &declare.error)], blueprints, db.missing());
+            // Each source is declared to the others, so one that cannot be declared stops the
+            // lowering: what the others would read of it isn't there to read.
+            let error = Error::from_compiler(&files[declare.file].0.file, &declare.error);
+            if !is_knock_on(&error, &unparsed) {
+                errors.push(error);
+            }
+            return finish(errors, blueprints, missing_names(&db, &unparsed));
         }
+        let mut lowering_failed = false;
         for (source, file) in &files {
             match lower::lower_source(file, &source.file, &db).and_then(|doc| Ok((lower::asset_path(file)?, doc))) {
                 Ok((class, doc)) => blueprints.push((file.name().to_string(), class, doc)),
-                Err(error) => errors.push(Error::from_compiler(&source.file, &error)),
+                Err(error) => {
+                    let error = Error::from_compiler(&source.file, &error);
+                    if is_knock_on(&error, &unparsed) {
+                        // Whatever reads this source is told the syntax error instead.
+                        continue;
+                    }
+                    lowering_failed = true;
+                    errors.push(error);
+                }
             }
         }
-        let missing = db.missing();
+        // A Blueprint whose ops name another's class is built after it, so ones that name each other
+        // leave no order to build them in: LoomBuild finds that out only when it applies them, and
+        // the check says it first, without the editor.
+        if !lowering_failed {
+            let docs: Vec<(&str, String)> = blueprints.iter().map(|(_, class, doc)| (class.as_str(), doc.to_json())).collect();
+            for cycle in build_order(&docs).1 {
+                let file = files
+                    .iter()
+                    .find(|(source, _)| source.package == package_of(cycle[0]))
+                    .map_or(String::new(), |(source, _)| source.file.clone());
+                errors.push(Error::new(&file, cycle_message(&docs, &cycle)));
+            }
+        }
+        let missing = missing_names(&db, &unparsed);
         finish(errors, blueprints, missing)
     }
 
@@ -352,6 +515,12 @@ pub fn lookup(dump: &Value, name: &str) -> Result<String> {
                 }
             }
             out += &format!("\n{}\n\n", serde_json::to_string_pretty(entry)?);
+            if kind == "structs" {
+                let hint = native_hint(dump, entry);
+                if !hint.is_empty() {
+                    out += &format!("{hint}\n\n");
+                }
+            }
         }
     }
 
@@ -394,6 +563,49 @@ pub fn lookup(dump: &Value, name: &str) -> Result<String> {
     Ok(out.trim_end().to_string() + "\n")
 }
 
+/// What a struct's own functions are called and what their pins are, for a struct Blueprints can
+/// only build and read through them: `Transform` holds `Translation`, `Rotation` and `Scale3D`,
+/// while `MakeTransform` takes `Location`, `Rotation` and `Scale` and `BreakTransform` gives those
+/// back, so its fields are not the names to write. Empty for a struct without such functions, and
+/// the pins are left out when the functions aren't in the types to read them from.
+fn native_hint(dump: &Value, entry: &Value) -> String {
+    let mut lines = Vec::new();
+    if let Some((class, function)) = entry["native_break"].as_str().and_then(function_of) {
+        let pins = pins_of(dump, class, function, &["out", "return"]).map_or(String::new(), |pins| format!(", whose outputs are {pins}"));
+        lines.push(format!("fields are read through {function}{pins}"));
+    }
+    if let Some((class, function)) = entry["native_make"].as_str().and_then(function_of) {
+        let pins = pins_of(dump, class, function, &["in"]).map_or(String::new(), |pins| format!(", which takes {pins}"));
+        lines.push(format!("built by {function}{pins}"));
+    }
+    lines.join("\n")
+}
+
+/// A dump path of a function, `/Script/Engine.KismetMathLibrary.MakeTransform`, as the class it is
+/// in and its name.
+fn function_of(path: &str) -> Option<(&str, &str)> {
+    path.rsplit_once('.')
+}
+
+/// The pins a function takes or gives, as the types dump names them: `Location (Vector), Rotation
+/// (Rotator) and Scale (Vector)`. `dirs` picks them by the direction they pass in, and the pins a
+/// node fills itself are left out. None when the function isn't in the types.
+fn pins_of(dump: &Value, class: &str, function: &str, dirs: &[&str]) -> Option<String> {
+    let params = dump["classes"][class]["functions"][function]["params"].as_array()?;
+    let names: Vec<String> = params
+        .iter()
+        .filter(|p| dirs.contains(&p["dir"].as_str().unwrap_or("")) && p["wired"].as_bool() != Some(true))
+        .map(|p| {
+            let name = p["name"].as_str().unwrap_or("");
+            match types::Ty::from_dump(p["type"].as_str().unwrap_or("")) {
+                Some(ty) => format!("{name} ({ty})"),
+                None => name.to_string(),
+            }
+        })
+        .collect();
+    (!names.is_empty()).then(|| and_list(&names))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -412,6 +624,38 @@ mod tests {
     fn looks_up_an_inherited_function() {
         let text = lookup(&dump(), "Pawn.K2_DestroyActor").unwrap();
         assert!(text.starts_with("function /Script/Engine.Actor.K2_DestroyActor"), "{text}");
+    }
+
+    /// The lines [`lookup`] adds for a struct's own make and break functions.
+    fn hints(text: &str) -> String {
+        text.lines().filter(|line| line.starts_with("fields are read through") || line.starts_with("built by")).collect::<Vec<_>>().join("\n")
+    }
+
+    #[test]
+    fn a_struct_built_by_its_own_functions_names_their_pins() {
+        let text = lookup(&dump(), "Transform").unwrap();
+        let hints = hints(&text);
+        assert!(
+            hints.contains("fields are read through BreakTransform, whose outputs are Location (Vector), Rotation (Rotator) and Scale (Vector)"),
+            "{hints}"
+        );
+        assert!(
+            hints.contains("built by MakeTransform, which takes Location (Vector), Rotation (Rotator) and Scale (Vector)"),
+            "{hints}"
+        );
+    }
+
+    #[test]
+    fn a_struct_whose_fields_are_its_pins_names_them_too() {
+        let hints = hints(&lookup(&dump(), "Vector").unwrap());
+        assert!(hints.contains("fields are read through BreakVector, whose outputs are X (float), Y (float) and Z (float)"), "{hints}");
+        assert!(hints.contains("built by MakeVector, which takes X (float), Y (float) and Z (float)"), "{hints}");
+    }
+
+    #[test]
+    fn a_struct_without_such_functions_says_nothing_extra() {
+        let text = lookup(&dump(), "LinearColor").unwrap();
+        assert!(hints(&text).is_empty(), "{text}");
     }
 
     #[test]
@@ -441,11 +685,22 @@ mod tests {
 
     /// A project on disk with the test types and these sources, by their paths under Content.
     fn project(name: &str, sources: &[(&str, &str)]) -> Project {
+        project_with(name, crate::fixtures::SMALL, sources)
+    }
+
+    /// A project on disk with the engine's types, for sources that name a class only the engine has,
+    /// such as a widget's UserWidget.
+    fn engine_project(name: &str, sources: &[(&str, &str)]) -> Project {
+        project_with(name, crate::fixtures::engine(), sources)
+    }
+
+    /// A project on disk with these types and sources, by their paths under Content.
+    fn project_with(name: &str, types: &str, sources: &[(&str, &str)]) -> Project {
         let root = std::env::temp_dir().join(format!("loom-test-{name}-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
         std::fs::create_dir_all(root.join("Intermediate/Loom")).unwrap();
         std::fs::write(root.join("Test.uproject"), "{}").unwrap();
-        std::fs::write(root.join("Intermediate/Loom/types.json"), crate::fixtures::SMALL).unwrap();
+        std::fs::write(root.join("Intermediate/Loom/types.json"), types).unwrap();
         for (path, text) in sources {
             let file = root.join("Content").join(path);
             std::fs::create_dir_all(file.parent().unwrap()).unwrap();
@@ -506,6 +761,63 @@ mod tests {
     }
 
     #[test]
+    fn blueprints_that_use_each_other_are_an_error_of_the_check() {
+        let project = engine_project("cycle", &[
+            ("Mod/BP_MapLoad.lm", "blueprint BP_MapLoad : Actor at /Game/Mod/BP_MapLoad\nvar Chains: WBP_Chains\n"),
+            ("Mod/WBP_Chains.lm", "blueprint WBP_Chains : UserWidget at /Game/Mod/WBP_Chains\nvar Map: BP_MapLoad\n"),
+        ]);
+        let check = project.check().unwrap();
+        let _ = std::fs::remove_dir_all(&project.root);
+        assert!(!check.ok);
+        assert_eq!(check.errors.len(), 1, "{}", check.text());
+        assert_eq!(check.errors[0].file, "Content/Mod/BP_MapLoad.lm", "{}", check.text());
+        assert_eq!(check.errors[0].message, "these Blueprints use each other in a cycle: BP_MapLoad uses WBP_Chains, and WBP_Chains uses BP_MapLoad", "{}", check.text());
+    }
+
+    #[test]
+    fn a_blueprint_that_uses_a_widget_that_uses_nothing_is_no_cycle() {
+        let project = engine_project("no-cycle", &[
+            ("Mod/BP_MapLoad.lm", "blueprint BP_MapLoad : Actor at /Game/Mod/BP_MapLoad\nvar Chains: WBP_Chains\n"),
+            // Its parent is the engine's UserWidget, which no source builds, so nothing comes back.
+            ("Mod/WBP_Chains.lm", "blueprint WBP_Chains : UserWidget at /Game/Mod/WBP_Chains\n"),
+        ]);
+        let check = project.check().unwrap();
+        let _ = std::fs::remove_dir_all(&project.root);
+        assert!(check.ok, "{}", check.text());
+    }
+
+    #[test]
+    fn separate_cycles_are_separate_errors() {
+        let project = project("cycles", &[
+            ("X/BP_A.lm", "blueprint BP_A : Actor at /Game/X/BP_A\nvar B: BP_B\n"),
+            ("X/BP_B.lm", "blueprint BP_B : Actor at /Game/X/BP_B\nvar A: BP_A\n"),
+            ("X/BP_C.lm", "blueprint BP_C : Actor at /Game/X/BP_C\nvar D: BP_D\n"),
+            ("X/BP_D.lm", "blueprint BP_D : Actor at /Game/X/BP_D\nvar C: BP_C\n"),
+        ]);
+        let check = project.check().unwrap();
+        let _ = std::fs::remove_dir_all(&project.root);
+        assert_eq!(check.errors.len(), 2, "{}", check.text());
+        assert!(check.errors[0].message.contains("BP_A uses BP_B"), "{}", check.text());
+        assert!(check.errors[1].message.contains("BP_C uses BP_D"), "{}", check.text());
+    }
+
+    #[test]
+    fn a_cycle_names_the_class_when_its_short_name_is_shared() {
+        let project = project("cycle-names", &[
+            ("One/BP_A.lm", "blueprint BP_A : Actor at /Game/One/BP_A\nvar B: BP_B\n"),
+            ("One/BP_B.lm", "blueprint BP_B : Actor at /Game/One/BP_B\n"),
+            ("Two/BP_A.lm", "blueprint BP_A : Actor at /Game/Two/BP_A\nvar B: BP_B\n"),
+            ("Two/BP_B.lm", "blueprint BP_B : Actor at /Game/Two/BP_B\nvar A: BP_A\n"),
+        ]);
+        let check = project.check().unwrap();
+        let _ = std::fs::remove_dir_all(&project.root);
+        assert_eq!(check.errors.len(), 1, "{}", check.text());
+        let message = &check.errors[0].message;
+        assert!(message.contains("/Game/Two/BP_A.BP_A_C uses /Game/Two/BP_B.BP_B_C"), "{message}");
+        assert!(message.contains("/Game/Two/BP_B.BP_B_C uses /Game/Two/BP_A.BP_A_C"), "{message}");
+    }
+
+    #[test]
     fn blueprints_of_one_name_are_written_and_ordered_apart() {
         let project = project("write", &[
             ("One/BP_A.lm", "blueprint BP_A : Actor at /Game/One/BP_A\n"),
@@ -553,5 +865,48 @@ mod tests {
     fn reads_an_error_place() {
         let error = Error::from_compiler("Content/A.lm", &anyhow::anyhow!("4:18: expected a name, found '('"));
         assert_eq!(error.to_string(), "Content/A.lm:4:18: expected a name, found '('");
+    }
+
+    #[test]
+    fn a_syntax_error_leaves_the_other_sources_lowered() {
+        let project = project("parse-then-lower", &[
+            ("X/BP_A.lm", "blueprint BP_A : Actor at /Game/X/BP_A\nvar Count int\n"),
+            ("X/BP_B.lm", "blueprint BP_B : Actor at /Game/X/BP_B\nvar Nope: NotAType\n"),
+        ]);
+        let check = project.check().unwrap();
+        let _ = std::fs::remove_dir_all(&project.root);
+        let files: Vec<&str> = check.errors.iter().map(|error| error.file.as_str()).collect();
+        assert_eq!(check.errors.len(), 2, "{}", check.text());
+        assert!(files.contains(&"Content/X/BP_A.lm"), "{}", check.text());
+        assert!(files.contains(&"Content/X/BP_B.lm"), "{}", check.text());
+        assert!(check.errors.iter().any(|error| error.message.contains("unknown type 'NotAType'")), "{}", check.text());
+    }
+
+    #[test]
+    fn a_syntax_error_is_not_laid_at_the_source_that_reads_its_type() {
+        let project = project("parse-knock-on", &[
+            ("X/BP_A.lm", "blueprint BP_A : Actor at /Game/X/BP_A\nvar Count int\n"),
+            ("X/BP_B.lm", "blueprint BP_B : Actor at /Game/X/BP_B\nfn F() {\nlet a: BP_A = none\n}\n"),
+        ]);
+        let check = project.check().unwrap();
+        let _ = std::fs::remove_dir_all(&project.root);
+        assert_eq!(check.errors.len(), 1, "{}", check.text());
+        assert_eq!(check.errors[0].file, "Content/X/BP_A.lm", "{}", check.text());
+        assert!(!check.missing.contains(&"BP_A".to_string()), "{:?}", check.missing);
+    }
+
+    #[test]
+    fn a_header_that_names_another_type_still_holds_that_name_back() {
+        // The file is BP_A.lm, but the header it was going to write is BP_Real's: the error in the
+        // file that reads BP_Real is its knock-on, and BP_Real is not a type to look for in the game.
+        let project = project("parse-header-name", &[
+            ("X/BP_A.lm", "blueprint BP_Real : Actor at /Game/X/BP_A\nvar Count int\n"),
+            ("X/BP_B.lm", "blueprint BP_B : Actor at /Game/X/BP_B\nfn F() {\nlet a: BP_Real = none\n}\n"),
+        ]);
+        let check = project.check().unwrap();
+        let _ = std::fs::remove_dir_all(&project.root);
+        assert_eq!(check.errors.len(), 1, "{}", check.text());
+        assert_eq!(check.errors[0].file, "Content/X/BP_A.lm", "{}", check.text());
+        assert!(!check.missing.contains(&"BP_Real".to_string()), "{:?}", check.missing);
     }
 }

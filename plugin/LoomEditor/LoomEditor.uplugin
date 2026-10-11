@@ -1,7 +1,7 @@
 {
 	"FileVersion": 3,
 	"Version": 1,
-	"VersionName": "0.1",
+	"VersionName": "0.1.0",
 	"FriendlyName": "Loom Editor",
 	"Description": "Builds Blueprints from Loom sources, in the editor whenever one is saved, or headless.",
 	"Category": "Editor",

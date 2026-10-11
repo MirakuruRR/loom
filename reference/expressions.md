@@ -47,7 +47,7 @@ fn F(a: int, b: int, ok: bool) -> bool {
 ```
 
 Both sides of an operator must have the same type. Convert one with `float()` or `int()`. A
-whole number written out beside a float is taken as a float.
+whole number written out beside a float is taken as a float, and beside an `int64` as an `int64`.
 
 ```loom error="mixes types"
 fn F(count: int) {
@@ -58,6 +58,40 @@ fn F(count: int) {
 ```loom
 fn F(speed: float) -> bool {
     return speed > 0 && speed * 2 < 10
+}
+```
+
+A struct has the operators its own table gives it, which the engine's library functions carry out:
+a `Vector` has `+`, `-`, `*`, `/`, `==` and `!=`, and `* float`. Whichever side the struct is
+written on, it is the function's first argument, so `2.0 * Reach` is `Reach * 2.0`. An operator the
+struct has not is refused with the list of the ones it has.
+
+```loom
+var Where: Vector
+var Fwd: Vector
+var Reach: float
+var Facing: Rotator
+
+fn Ahead() -> Vector {
+    let at = Where + Fwd * Reach
+    let aimed = Fwd * 2.0 + Where
+    return -at
+}
+
+fn Same(a: Rotator, b: Rotator) -> bool {
+    return a == b && a * 1.5 != b
+}
+```
+
+A class or a soft reference is compared with `none` to ask whether it is set, which the engine's own
+validity check answers.
+
+```loom
+var Kind: class<Actor>
+var Icon: soft<Texture2D>
+
+fn Ready() -> bool {
+    return Kind != none && Icon == none
 }
 ```
 
@@ -112,6 +146,19 @@ Some calls return several outputs, such as a function with [`out` parameters](/r
 fn F(target: TextureRenderTarget2D) {
     let draw = KismetRenderingLibrary.BeginDrawCanvasToRenderTarget(target)
     KismetRenderingLibrary.EndDrawCanvasToRenderTarget(draw.Context)
+}
+```
+
+`format(pattern, value, ...)` fills a [`text`](/reference/builtins/#format)'s places with values:
+`{0}` is the first value after the pattern, `{1}` the second, and so on. Text and strings go in as
+they are, numbers as numbers, and anything else that can be shown as text is converted.
+
+```loom
+var Count: int
+var Stock: map<string, int>
+
+fn Report(name: string) -> text {
+    return format("{0} has {1} of {2}", name, Count, Stock.Length())
 }
 ```
 
@@ -172,28 +219,55 @@ fn Speed(group: ETickingGroup) -> float {
 
 ## Members and items
 
-`object.Name` reads a variable of an object, or a field of a struct. `array[i]` reads an item of an
-array, and `map[key]` the value a map holds for a key, or the value type's zero when it holds none.
+`object.Name` reads a variable of an object, or a field of a struct. A struct the engine reads with a
+function of its own takes the names that function gives its outputs, which are not always the
+struct's own field names: a Transform is read as `Location`, `Rotation` and `Scale`, so
+`transform.Location` is right and `transform.Translation` is refused with the names to use instead.
+`array[i]` reads an item of an array, and `map[key]` the value a map holds for a key, or the value
+type's zero when it holds none.
 
 ```loom
 var Where: Vector2D
 var Items: array<int> = [1, 2]
 var Stock: map<string, int> = {"wood": 3}
+var Placed: Transform
 
 fn F() -> float {
     return Where.X + float(Items[0] + Stock["wood"])
+}
+
+fn At() -> Vector {
+    return Placed.Location
 }
 ```
 
 ## Structs
 
-`Struct(field: value, ...)` makes a struct with those fields, and the rest zero.
+`Struct(field: value, ...)` makes a struct with those fields. A field left out is its type's zero,
+and one the struct's own make function gives a default to keeps that default: a `Transform` left
+without its Scale has a scale of 1, not of 0.
 
 ```loom
+var At: Vector
+var Facing: Rotator
+
 fn F() -> Vector2D {
     return Vector2D(X: 1.0, Y: 2.0)
 }
+
+fn Turned(yaw: float) -> Rotator {
+    return Rotator(Yaw: yaw)
+}
+
+fn Placed() -> Transform {
+    return Transform(Location: At, Rotation: Facing)
+}
 ```
+
+A struct the engine makes with a function of its own — Vector, Rotator, Transform and the like — is
+written with that function's parameters, which are not always named as the struct's own fields:
+`Transform(Location: ..., Rotation: ...)` calls `MakeTransform`. A name it does not take is refused
+with the list of the ones it does.
 
 ## Enums
 
@@ -216,5 +290,15 @@ var Items: array<int>
 fn F() {
     Items = [1, 2, 3]
     Items = []
+}
+```
+
+An empty `[]` or `{}` needs a variable to fill, which is emptied in place. Blueprint has no node
+that makes an empty array, set or map, so a local `set` or `map`, a struct's field, a call's
+argument and a return cannot be given one: empty a variable and give that instead.
+
+```loom error="is not something Blueprint can make"
+fn F() {
+    let seen: set<int> = []
 }
 ```

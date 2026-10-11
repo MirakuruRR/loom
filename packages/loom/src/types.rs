@@ -289,6 +289,17 @@ fn is_under(folder: &str, outer: &str) -> bool {
     folder == outer || folder.strip_prefix(outer).is_some_and(|rest| rest.starts_with('/'))
 }
 
+/// Whether a name could name a class, struct or enum of Unreal at all. A name of nothing but
+/// lowercase letters, digits and underscores — `cast`, `float`, `string`, `vector` — is a builtin of
+/// the language or a variable, never a type: Unreal names its own types in UpperCamelCase, and an
+/// asset takes the name of its file, which the editor capitalizes. Listening for such a name as a
+/// type would only have whatever loads the types look for something that cannot exist, so miss it
+/// without writing it down. The price of being wrong is a shorter list for that plugin to load,
+/// never a wrong compilation: nothing but `missing` reads this.
+fn could_be_a_type(name: &str) -> bool {
+    !name.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
+}
+
 /// The project's Loom settings, from Project Settings > Plugins > Loom.
 #[derive(Debug, Default, Deserialize)]
 struct Settings {
@@ -590,6 +601,11 @@ pub struct TypeDb {
     /// Every name or path looked up as a class, struct or enum and not found, for whatever loaded
     /// the types to load more.
     missing: RefCell<BTreeSet<String>>,
+    /// Names settled as something other than a missing type: ones a lookup did find, as a class,
+    /// struct, enum or delegate, and ones code said are not a type at all. Settled names never
+    /// enter `missing` and leave it if they are already in it, since a name looked up as one kind
+    /// of type and found as another is not a type the types are missing.
+    resolved: RefCell<BTreeSet<String>>,
 }
 
 impl TypeDb {
@@ -642,7 +658,16 @@ impl TypeDb {
         for path in signatures.keys() {
             short_delegates.entry(delegate_name(path).to_string()).or_default().push(path.clone());
         }
-        Ok(TypeDb { dump, short, short_structs, short_enums, signatures, short_delegates, missing: RefCell::default() })
+        Ok(TypeDb {
+            dump,
+            short,
+            short_structs,
+            short_enums,
+            signatures,
+            short_delegates,
+            missing: RefCell::default(),
+            resolved: RefCell::default(),
+        })
     }
 
     /// A delegate by its signature's path, or by the name its signature goes by when that names
@@ -861,10 +886,17 @@ impl TypeDb {
         }
     }
 
+    /// Which of the types of one short name a source means, recording the name as settled when one
+    /// is picked and as missing when none is.
+    fn pick(&self, name: &str, found: &[&String], scope: &TypeScope) -> Result<Option<String>> {
+        let picked = self.pick_of(name, found, scope)?;
+        Ok(self.found(name, picked))
+    }
+
     /// Which of the types of one short name a source means: the one in its own folder, then the
     /// one under the first folder it uses that has one, then the only one there is. Two at any of
     /// those steps is ambiguous.
-    fn pick(&self, name: &str, found: &[&String], scope: &TypeScope) -> Result<Option<String>> {
+    fn pick_of(&self, name: &str, found: &[&String], scope: &TypeScope) -> Result<Option<String>> {
         let ambiguous = |many: &[&String]| -> Result<Option<String>> {
             let paths: Vec<&str> = many.iter().map(|p| p.as_str()).collect();
             bail!("{name} is ambiguous; write its path, one of {}", paths.join(", "))
@@ -881,7 +913,7 @@ impl TypeDb {
             }
         }
         match found {
-            [] => Ok(self.found(name, None)),
+            [] => Ok(None),
             [one] => Ok(Some((*one).clone())),
             many => ambiguous(many),
         }
@@ -899,16 +931,40 @@ impl TypeDb {
         self.missing.borrow_mut().insert(format!("{folder}/"));
     }
 
-    /// What a lookup found, noting a name that found nothing.
+    /// What a lookup found, noting a name that found nothing. A name that did find something, here
+    /// or under another kind of type, is settled: it leaves `missing` and never enters it again.
     fn found(&self, name: &str, found: Option<String>) -> Option<String> {
-        if found.is_none() {
-            self.missing.borrow_mut().insert(name.to_string());
+        match found {
+            Some(path) => {
+                self.resolved.borrow_mut().insert(name.to_string());
+                self.missing.borrow_mut().remove(name);
+                Some(path)
+            }
+            None if self.settled(name) => None,
+            None => {
+                self.missing.borrow_mut().insert(name.to_string());
+                None
+            }
         }
-        found
     }
 
-    /// Every name or path looked up as a class, struct or enum that the types don't have. Some are
-    /// names that turned out to be something else, such as a variable.
+    /// Whether a name is settled as something other than a missing type: a lookup found it, or code
+    /// said it is not a type, or it cannot be one at all.
+    fn settled(&self, name: &str) -> bool {
+        self.resolved.borrow().contains(name) || !could_be_a_type(name)
+    }
+
+    /// Notes that a name is not a type at all but something else, such as a builtin of the language
+    /// or a variable, so looking types up by it must not leave it in `missing`. A name already
+    /// written there leaves it, and one that is looked up again is not written again.
+    pub fn not_a_type(&self, name: &str) {
+        self.resolved.borrow_mut().insert(name.to_string());
+        self.missing.borrow_mut().remove(name);
+    }
+
+    /// Every name or path looked up as a class, struct or enum that the types don't have, for
+    /// whatever loaded them to load more. Names that turned out to be something else, that another
+    /// lookup found, or that cannot name a type at all are not in it.
     pub fn missing(&self) -> Vec<String> {
         self.missing.borrow().iter().cloned().collect()
     }
@@ -1276,5 +1332,49 @@ mod tests {
         assert!(db.may_instance("/Game/Mine/Deep/BP_X.BP_X_C"));
         assert!(!db.may_instance("/Game/Library/BP_X.BP_X_C"));
         assert!(!db.may_instance("/Game/BP_X.BP_X_C"));
+    }
+
+    /// A name that missed as one kind of type and then found as another is not a type the types are
+    /// missing: what loads them must not be sent after it.
+    #[test]
+    fn a_name_found_under_another_kind_of_type_leaves_missing() {
+        let db = TypeDb::parse(crate::fixtures::SMALL).unwrap();
+        let scope = super::TypeScope { folder: "/Game/Mods/Mod", uses: &[] };
+        assert_eq!(db.structure("Actor", &scope).unwrap(), None);
+        assert_eq!(db.missing(), vec!["Actor".to_string()]);
+        assert_eq!(db.class_in("Actor", false, &scope).unwrap().as_deref(), Some("/Script/Engine.Actor"));
+        assert!(db.missing().is_empty(), "a found name is not missing: {:?}", db.missing());
+        // And looking it up again, as the kind that did not find it, does not write it down again.
+        assert_eq!(db.structure("Actor", &scope).unwrap(), None);
+        assert!(db.missing().is_empty(), "{:?}", db.missing());
+    }
+
+    /// A builtin of the language or a variable, named in lowercase, cannot name a type, so looking
+    /// types up by it leaves `missing` alone; a name that could, an asset that is really absent,
+    /// stays in `missing`.
+    #[test]
+    fn a_lowercase_name_that_cannot_be_a_type_is_not_missing() {
+        let db = TypeDb::parse(crate::fixtures::SMALL).unwrap();
+        let scope = super::TypeScope { folder: "/Game/Mods/Mod", uses: &[] };
+        for name in ["cast", "float", "string", "int", "vector", "make_box", "int64"] {
+            assert_eq!(db.class_in(name, false, &scope).unwrap(), None, "{name}");
+        }
+        assert!(db.missing().is_empty(), "{:?}", db.missing());
+        assert_eq!(db.class_in("Nope", false, &scope).unwrap(), None);
+        assert_eq!(db.missing(), vec!["Nope".to_string()]);
+    }
+
+    /// What code says is not a type at all, such as something a variable turned out to be, is
+    /// taken out of `missing` and never written there again.
+    #[test]
+    fn not_a_type_settles_a_name_already_written_down() {
+        let db = TypeDb::parse(crate::fixtures::SMALL).unwrap();
+        let scope = super::TypeScope { folder: "/Game/Mods/Mod", uses: &[] };
+        assert_eq!(db.structure("MakeBox", &scope).unwrap(), None);
+        assert_eq!(db.missing(), vec!["MakeBox".to_string()]);
+        db.not_a_type("MakeBox");
+        assert!(db.missing().is_empty(), "{:?}", db.missing());
+        assert_eq!(db.structure("MakeBox", &scope).unwrap(), None);
+        assert!(db.missing().is_empty(), "{:?}", db.missing());
     }
 }

@@ -51,17 +51,23 @@ fn Reset() {
 ```
 
 A parameter marked `ref` is the caller's own variable, not a copy of its value, so the function can
-change it. Its argument must be a variable.
+change it, a field of a struct included. Its argument must be a variable.
 
 ```loom
 var Items: array<int>
+var Where: Vector2D
 
 fn Push(xs: ref array<int>, n: int) {
     xs.Add(n)
 }
 
+fn Shift(by: ref Vector2D, step: float) {
+    by.X = by.X + step
+}
+
 fn Fill() {
     Push(Items, 1)
+    Shift(Where, 1.0)
 }
 ```
 

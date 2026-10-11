@@ -13,7 +13,7 @@ use std::collections::{HashMap, HashSet};
 
 use anyhow::{anyhow, bail, Result};
 
-use crate::builtins::{self, Lowering, On, ARRAY, MAP, MATH, SYSTEM};
+use crate::builtins::{self, Lowering, On, ARRAY, MAP, MATH, SYSTEM, TEXT};
 use crate::ops::{ComponentField, Document, Enumerator, Local, StructField, NodeKind, Op, Param, PinRef, Scope, VERSION};
 use crate::syntax::{self, Access, BinaryOp, Enum, Expr, Interface, Purity, Struct, ExprKind, File, Item, ParamDecl, Span, Stmt, TypeName, UnaryOp, RESERVED_PREFIX};
 use crate::types::{delegate_name, Declared, Event, Floats, Function, Passing, Slot, Ty, TypeDb, TypeScope, INTERFACE};
@@ -21,6 +21,8 @@ use crate::types::{delegate_name, Declared, Event, Floats, Function, Passing, Sl
 const OBJECT: &str = "/Script/CoreUObject.Object";
 const EVENT_GRAPH: &str = "EventGraph";
 const KEY: &str = "/Script/InputCore.Key";
+/// One of the values `Format` is given, with the kind it is and where it holds it.
+const FORMAT_ARGUMENT: &str = "/Script/Engine.FormatArgumentData";
 const LINEAR_COLOR: &str = "/Script/CoreUObject.LinearColor";
 const SLATE_COLOR: &str = "/Script/SlateCore.SlateColor";
 /// The name of the output pin that carries a loom function's return value.
@@ -849,7 +851,14 @@ pub fn lower(file: &File, source: &str, db: &TypeDb) -> Result<Document> {
             }
             None => {
                 let params = function.params.iter().map(|(n, t, _)| (n.clone(), t.clone())).collect();
-                Graph::new(&name, &program, params, function.ret.clone())
+                let mut graph = Graph::new(&name, &program, params, function.ret.clone());
+                graph.ref_params = function
+                    .params
+                    .iter()
+                    .filter(|(_, _, by_ref)| *by_ref)
+                    .map(|(n, t, _)| (n.clone(), t.clone()))
+                    .collect();
+                graph
             }
         };
         graph.handler = handler.is_some();
@@ -1343,6 +1352,51 @@ fn no_member(db: &TypeDb, class: &str, name: &str) -> String {
     }
 }
 
+/// Names as a message lists them: "Location, Rotation and Scale".
+fn listed(names: &[String]) -> String {
+    match names.split_last() {
+        Some((last, [])) => last.clone(),
+        Some((last, rest)) => format!("{} and {last}", rest.join(", ")),
+        None => String::new(),
+    }
+}
+
+/// What a function's parameters are, as a message lists the fields they fill:
+/// "Location (Vector), Rotation (Rotator) and Scale (Vector)".
+fn takes(function: &Function) -> String {
+    listed(&function.params.iter().map(|p| format!("{} ({})", p.name, p.ty)).collect::<Vec<_>>())
+}
+
+/// What a function's outputs are, as a message lists the fields they give.
+fn gives(function: &Function) -> String {
+    listed(&function.outputs.iter().map(|(name, ty)| format!("{name} ({ty})")).collect::<Vec<_>>())
+}
+
+/// Why a field of a structure the engine reads with a function of its own cannot be read: that
+/// function's outputs are what Blueprint has, and they are not always named as the fields are, so
+/// the message names them and shows how to write one. The whole sentence, without the field it is
+/// about, is what `loom types` prints for the same structure.
+fn read_through(structure: &str, function: &Function) -> String {
+    let first = function.outputs.first().map(|(name, _)| name.as_str()).unwrap_or("");
+    format!(
+        "{structure}'s fields are read through {}, whose outputs are {}: write {}(value).{first}",
+        function.name,
+        gives(function),
+        function.name
+    )
+}
+
+/// Why a structure cannot be made with a field that its make function has no parameter for, as
+/// `loom types` prints it too: the function's parameters are the fields it takes.
+fn made_by(structure: &str, function: &Function) -> String {
+    format!("{structure}'s fields are built by {}, which takes {}", function.name, takes(function))
+}
+
+/// Whether a type is one of Blueprint's containers.
+fn is_container(ty: &Ty) -> bool {
+    matches!(ty, Ty::Array(_) | Ty::Set(_) | Ty::Map(..))
+}
+
 /// `default a.b = value`: a property the parent declares, or a field inside one, and the value to
 /// give it, written out or copied from another class's default.
 fn class_default(program: &Program, path: &[String], value: &Expr, span: Span) -> Result<Op> {
@@ -1439,6 +1493,15 @@ fn literal(e: &Expr, ty: &Ty, p: &Program) -> Result<String> {
             if path == SLATE_COLOR { format!("(SpecifiedColor={colour})") } else { colour }
         }
         (ExprKind::Make(name, fields), Ty::Struct(path)) => {
+            // A key's value is the name of the key, which is what its pin holds and what the
+            // engine's own ExportText writes: `Key(KeyName: "Escape")` is `Escape`. Written as the
+            // struct literal `(KeyName="Escape")` it would be read back as the single character `(`,
+            // since a key is imported from one token — which a built Blueprint's name table shows.
+            if path == KEY && fields.len() == 1 && fields[0].0 == "KeyName" {
+                if let ExprKind::Str(key) = &fields[0].1.kind {
+                    return Ok(key.clone());
+                }
+            }
             // A struct the engine makes with another's make function, such as Slate's stand-in
             // for a Vector2D, is written as that other struct.
             let Some(written) = p.structure(name)? else { bail!("{}: expected a {ty}, not a {name}", e.span) };
@@ -1578,6 +1641,9 @@ struct Graph<'a> {
     waits: bool,
     program: &'a Program<'a>,
     params: HashMap<String, Ty>,
+    /// The parameters passed by reference, which stand for the caller's own variables: a field of
+    /// one may be set, where a by-value parameter is only a copy.
+    ref_params: HashMap<String, Ty>,
     ret: Option<Ty>,
     /// The function's `out` parameters, in the order declared. Each is held in a local of its
     /// own, named by [`out_local`], which every return feeds to the result node's pin of the
@@ -1617,6 +1683,7 @@ impl<'a> Graph<'a> {
             waits: false,
             program,
             params,
+            ref_params: HashMap::new(),
             ret,
             outputs: Vec::new(),
             locals: Vec::new(),
@@ -2088,14 +2155,18 @@ impl<'a> Graph<'a> {
                 self.set(kind, pin_name, None, value);
             }
             ExprKind::Member(object, field) if matches!(object.kind, ExprKind::Name(_)) && matches!(self.expr_type_of_target(object, span), Ok(Ty::Struct(_))) => {
-                // A struct variable's field, set in place.
+                // A struct variable's or by-reference parameter's field, set in place.
                 let Ok(Ty::Struct(path)) = self.expr_type_of_target(object, span) else { unreachable!() };
-                if let Some((class, function)) = self.db().native_make(&path) {
+                // A by-reference parameter is the caller's own struct, which the editor's Set
+                // Members node writes through the parameter's own pin: there is no copy here to
+                // make again, so even a struct the engine makes with a function has its field set.
+                let held = matches!(&object.kind, ExprKind::Name(name) if self.ref_params.contains_key(name));
+                if let Some((class, function)) = self.db().native_make(&path).filter(|_| !held) {
                     // The engine makes such a struct with a function of its own, and cannot set one
                     // field of it, so it is made again with that field changed.
                     let make = self.program.library(&class, &function)?;
                     if !make.params.iter().any(|p| p.name == *field) {
-                        bail!("{span}: {} has no field {field}", short(&path));
+                        bail!("{span}: {} has no field {field}; {}", short(&path), made_by(short(&path), &make));
                     }
                     let fields = make
                         .params
@@ -2191,6 +2262,11 @@ impl<'a> Graph<'a> {
                 }
                 if let Some(t) = self.local(name) {
                     return Ok(t);
+                }
+                // A by-reference parameter is the caller's own variable, which a field of may be
+                // set in place. A by-value one is a copy, so it is only the function's own.
+                if let Some(t) = self.ref_params.get(name) {
+                    return Ok(t.clone());
                 }
                 if let Some(t) = self.program.members.get(name) {
                     return Ok(t.clone());
@@ -2933,6 +3009,11 @@ impl<'a> Graph<'a> {
         if self.is_value(name) || self.program.dispatchers.contains_key(name) {
             return Ok(None);
         }
+        // A name the language gives is not a class, so it is not a type the project is missing.
+        if builtins::function(name).is_some() || builtins::plain_type(name).is_some() {
+            self.db().not_a_type(name);
+            return Ok(None);
+        }
         self.program.class(name).map_err(|err| anyhow!("{}: {err}", e.span))
     }
 
@@ -3229,7 +3310,88 @@ impl<'a> Graph<'a> {
             }
             return self.expr(&target);
         }
+        // Nothing Blueprint can wire to a container's pin: a call, a field and a return all need
+        // one, and there is no node that makes an empty array, set or map.
+        if let (ExprKind::EmptyArray | ExprKind::Null, Ty::Array(_) | Ty::Set(_) | Ty::Map(..)) = (&arg.kind, to) {
+            let (what, empty) = match to {
+                Ty::Array(_) => ("an array", "[]"),
+                Ty::Set(_) => ("a set", "[]"),
+                _ => ("a map", "{}"),
+            };
+            if matches!(arg.kind, ExprKind::Null) {
+                bail!("{}: {what} cannot be none, and Blueprint has no node that makes an empty one; write Clear(), or add() the items", arg.span);
+            }
+            bail!(
+                "{}: {what}'s empty {empty} is not something Blueprint can make; fill a variable in place, as Items = {empty}, and give that, or write Clear() and add() the items",
+                arg.span
+            );
+        }
         self.expr(arg)
+    }
+
+    /// The arguments of a function that makes a struct, in its parameters' order: the field written
+    /// out where one names the parameter, the pin's own default where the function gives the
+    /// parameter one, and the type's zero for the rest, so a struct is made with every field set and
+    /// `Rotator(Yaw: 90.0)` is `MakeRotator(0.0, 0.0, 90.0)`.
+    fn make_values(&mut self, function: &Function, fields: &[(String, Expr)], span: Span, depth: usize) -> Result<Vec<Value>> {
+        let mut values = Vec::new();
+        for param in &function.params {
+            match fields.iter().find(|(f, _)| *f == param.name) {
+                Some((_, written)) => {
+                    // A make function's pin holds a whole literal, and one left unset keeps the
+                    // parameter's own default, so an empty container written out is that pin left
+                    // alone. `arg` refuses one anywhere a node needs a wire.
+                    if matches!(written.kind, ExprKind::EmptyArray) && is_container(&param.ty) {
+                        values.push(Value { source: Source::Nothing, ty: param.ty.clone() });
+                        continue;
+                    }
+                    let value = self.arg(written, &param.ty)?;
+                    self.check(&value, &param.ty, written.span, &param.name)?;
+                    values.push(value);
+                }
+                // A parameter the function gives a default to keeps it: nothing is fed to its pin,
+                // and the editor's own Make node leaves it at that default, as MakeTransform's
+                // Scale stays (1, 1, 1) rather than becoming nothing.
+                None if param.optional => values.push(Value { source: Source::Nothing, ty: param.ty.clone() }),
+                None => values.push(self.zero_value(&param.ty, &param.name, span, depth)?),
+            }
+        }
+        Ok(values)
+    }
+
+    /// A value of `ty` at its zero, for a field or parameter a make function leaves out. A struct
+    /// is made by its own make function, or by a Make node with nothing fed to it, and each of its
+    /// fields is a zero in turn. There is no zero of a container, an object, a class, a delegate or
+    /// an enum, which Blueprint cannot leave at one, so those are refused rather than guessed at.
+    fn zero_value(&mut self, ty: &Ty, what: &str, span: Span, depth: usize) -> Result<Value> {
+        let literal = |text: &str| Value { source: Source::Literal(text.to_string()), ty: ty.clone() };
+        match ty {
+            Ty::Bool => Ok(literal("false")),
+            Ty::Byte | Ty::Int | Ty::Int64 => Ok(literal("0")),
+            Ty::Float => Ok(literal("0.0")),
+            Ty::Str | Ty::Text => Ok(literal("")),
+            // A name's own nothing is the empty name its pin already holds, which no text says.
+            Ty::Name => Ok(Value { source: Source::Nothing, ty: ty.clone() }),
+            Ty::Struct(path) => {
+                // A struct that makes itself out of itself, such as GameplayTag's make function,
+                // has no zero to find this way.
+                if depth >= 4 {
+                    bail!("{span}: {what} is {ty}, which has no zero to leave it at; give it a value");
+                }
+                if let Some((class, function)) = self.db().native_make(path) {
+                    let function = self.program.library(&class, &function)?;
+                    let values = self.make_values(&function, &[], span, depth + 1)?;
+                    return match self.call_values(&function, None, values)? {
+                        (_, Some(value)) => Ok(value),
+                        _ => bail!("{span}: {} returns nothing", function.name),
+                    };
+                }
+                // A Make node with nothing fed to it is the struct at its zero.
+                let node = self.node("make", NodeKind::Make { r#struct: path.clone() });
+                Ok(Value { source: Source::Pin(pin(&node, short(path))), ty: ty.clone() })
+            }
+            other => bail!("{span}: {what} is {other}, which has no zero to leave it at; give it a value"),
+        }
     }
 
     /// An argument for a by-reference parameter: a variable, which the function may change.
@@ -3290,6 +3452,12 @@ impl<'a> Graph<'a> {
         if self.declared(name) || self.program.functions.contains_key(name) {
             return Ok(None);
         }
+        // A function the language gives is never an enum, and its name is not a type the project
+        // is missing: `float(x)` is a conversion, and `cast(x, C)` a cast.
+        if builtins::function(name).is_some() || builtins::plain_type(name).is_some() {
+            self.db().not_a_type(name);
+            return Ok(None);
+        }
         let Some(path) = self.program.enumeration(name).map_err(|err| anyhow!("{span}: {err}"))? else {
             return Ok(None);
         };
@@ -3308,6 +3476,9 @@ impl<'a> Graph<'a> {
     fn builtin(&mut self, name: &str, args: &[Expr], span: Span) -> Result<Option<Value>> {
         if builtins::function(name).is_none() {
             return Ok(None);
+        }
+        if name == "format" {
+            return self.format_call(args, span).map(Some);
         }
         if name == "create_widget" {
             let [arg] = args else { bail!("{span}: create_widget() takes a widget Blueprint's class") };
@@ -3389,11 +3560,16 @@ impl<'a> Graph<'a> {
         }
         let [arg] = args else { bail!("{span}: {name}() takes one argument") };
         let value = self.expr(arg)?;
-        let Some(conversion) = builtins::conversion(name, &value.ty) else {
-            bail!("{span}: {name}() cannot convert {}", value.ty)
+        self.convert(value, name, span, &format!("{name}()")).map(Some)
+    }
+
+    /// A value as one of the language's plain types, converted with the calls the table gives, as
+    /// `float(x)` does. Each step takes the last one's value, typed as that step gives it.
+    fn convert(&mut self, value: Value, to: &str, span: Span, what: &str) -> Result<Value> {
+        let Some(conversion) = builtins::conversion(to, &value.ty) else {
+            bail!("{span}: {what} cannot convert {}", value.ty)
         };
-        let ret = builtins::plain_type(name).expect("a conversion is to a plain type");
-        // Each step takes the last one's value, typed as that step gives it.
+        let ret = builtins::plain_type(to).expect("a conversion is to a plain type");
         let mut value = value;
         for step in conversion.steps {
             let allowed: &[&str] = if step.internal { &["internal"] } else { &[] };
@@ -3401,7 +3577,91 @@ impl<'a> Graph<'a> {
             let step_ret = function.ret.clone().unwrap_or_else(|| ret.clone());
             value = self.pure_call(function, vec![(step.param, value)], step_ret)?;
         }
-        Ok(Some(Value { source: value.source, ty: ret }))
+        Ok(Value { source: value.source, ty: ret })
+    }
+
+    /// `format(pattern, value, ...)`: the engine's `Format`, whose arguments are an array of
+    /// `FormatArgumentData`. Blueprint has no node that makes an array of a known type, so the
+    /// array is a local of the function, emptied and then filled with one `Add` per value.
+    fn format_call(&mut self, args: &[Expr], span: Span) -> Result<Value> {
+        let Some((pattern, values)) = args.split_first() else {
+            bail!("{span}: format() takes a text pattern and the values to put in it, as format(\"{{0}} of {{1}}\", a, b)");
+        };
+        if values.is_empty() {
+            bail!("{span}: format() takes at least one value to put in the pattern, as format(\"{{0}} of {{1}}\", a, b)");
+        }
+        let pattern = self.expr(pattern)?;
+        if !matches!(pattern.ty, Ty::Text | Ty::Str) {
+            bail!("{span}: format() takes a text pattern first, as format(\"{{0}} of {{1}}\", a, b), not {}", pattern.ty);
+        }
+        let pattern = self.convert(pattern, "text", span, "format()")?;
+        // The arguments, in an array of their own. It starts empty, and is emptied again where the
+        // same call runs again, as a second pass of a loop does.
+        self.count += 1;
+        let local = format!("{RESERVED_PREFIX}Format{}", self.count);
+        let argument = Ty::Struct(FORMAT_ARGUMENT.to_string());
+        let arguments = Ty::Array(Box::new(argument.clone()));
+        self.locals.push((local.clone(), arguments.clone()));
+        let held = self.expr(&Expr { kind: ExprKind::Name(local), span })?;
+        self.container_call_values(held.clone(), "Clear", Vec::new(), span)?;
+        for (i, written) in values.iter().enumerate() {
+            let value = self.expr(written)?;
+            let (kind, field, value) = self.format_argument(value, written.span)?;
+            let node = self.node("make", NodeKind::Make { r#struct: FORMAT_ARGUMENT.to_string() });
+            self.feed(value.source, pin(&node, field));
+            // The place in the pattern this value fills, as `{0}` names it.
+            self.feed(Source::Literal(format!("{{{i}}}")), pin(&node, "ArgumentName"));
+            self.feed(Source::Literal(kind.to_string()), pin(&node, "ArgumentValueType"));
+            let value = Value { source: Source::Pin(pin(&node, short(FORMAT_ARGUMENT))), ty: argument.clone() };
+            self.container_call_values(held.clone(), "Add", vec![value], span)?;
+        }
+        // Format is internal to the engine, as the editor's own Format node is made by it.
+        let format = self.program.library_in(TEXT, "Format", &["internal"])?;
+        self.pure_call(format, vec![("InPattern", pattern), ("InArgs", held)], Ty::Text)
+    }
+
+    /// One value of a `format`, as the engine's `FormatArgumentData` holds it: the kind it is, which
+    /// of the struct's fields holds it, and the value in that field's own type.
+    fn format_argument(&mut self, value: Value, span: Span) -> Result<(&'static str, &'static str, Value)> {
+        Ok(match &value.ty {
+            Ty::Float => ("Double", "ArgumentValueDouble", value),
+            Ty::Int64 => ("Int", "ArgumentValueInt", value),
+            Ty::Int => {
+                // The field a whole number goes in is an int64.
+                let value = self.pure_library(MATH, "Conv_IntToInt64", vec![("InInt", value)], Ty::Int64)?;
+                ("Int", "ArgumentValueInt", value)
+            }
+            other => {
+                // Anything else that can be shown as text goes in as text.
+                if builtins::conversion("text", other).is_none() && builtins::conversion("string", other).is_none() {
+                    bail!("{span}: format() cannot show {other}; convert it to a string or a text first");
+                }
+                let value = if builtins::conversion("text", other).is_some() {
+                    self.convert(value, "text", span, "format()")?
+                } else {
+                    let shown = self.convert(value, "string", span, "format()")?;
+                    self.convert(shown, "text", span, "format()")?
+                };
+                ("Text", "ArgumentValue", value)
+            }
+        })
+    }
+
+    /// A method of a container called on a value already lowered, with arguments that are values
+    /// too: `fill_array` and `format` build their items as nodes rather than writing them out.
+    fn container_call_values(&mut self, container: Value, name: &str, extra: Vec<Value>, span: Span) -> Result<Option<Value>> {
+        let Some((function, receiver)) = self.db().container_function(&container.ty, name).map_err(|e| anyhow!("{span}: {e}"))? else {
+            bail!("{span}: {} has no method {name}", container.ty);
+        };
+        let mut whole = function;
+        whole.params.insert(0, crate::types::Param { name: receiver, ty: container.ty.clone(), optional: false, by_ref: false, wired: true });
+        if whole.params.len() != extra.len() + 1 {
+            bail!("{span}: {name} takes {} arguments, and {} were given", whole.params.len() - 1, extra.len());
+        }
+        let mut values = vec![container];
+        values.extend(extra);
+        let (_, result) = self.call_node(&whole, None, values, false)?;
+        Ok(result)
     }
 
     fn expr(&mut self, e: &Expr) -> Result<Value> {
@@ -3421,32 +3681,42 @@ impl<'a> Graph<'a> {
                 let Some(path) = self.program.structure(name).map_err(|err| anyhow!("{}: {err}", e.span))? else {
                     bail!("{}: no struct {name}", e.span);
                 };
+                // A key's value is the name of the key, which is what its pin holds, so
+                // `Key(KeyName: "Left")` is that name and needs no node.
+                if path == KEY && fields.len() == 1 && fields[0].0 == "KeyName" {
+                    if let ExprKind::Str(key) = &fields[0].1.kind {
+                        return Ok(Value { source: Source::Literal(key.clone()), ty: Ty::Struct(path) });
+                    }
+                }
                 if let Some((class, function)) = self.db().native_make(&path) {
                     // Such a struct is made by its function, whose parameters are the fields.
                     let function = self.program.library(&class, &function)?;
-                    let mut args = Vec::new();
-                    for param in &function.params {
-                        match fields.iter().find(|(f, _)| *f == param.name) {
-                            Some((_, value)) => args.push(value.clone()),
-                            None if param.optional => break,
-                            None => bail!("{}: {name} needs {}", e.span, param.name),
-                        }
-                    }
                     if let Some((field, _)) = fields.iter().find(|(f, _)| !function.params.iter().any(|p| p.name == *f)) {
-                        bail!("{}: {name} has no field {field}", e.span);
+                        bail!("{}: {name} has no field {field}; {}", e.span, made_by(short(&path), &function));
                     }
-                    return match self.call(&function, None, &args, e.span)? {
+                    let values = self.make_values(&function, fields, e.span, 0)?;
+                    return match self.call_values(&function, None, values)? {
                         (_, Some(value)) => Ok(value),
                         _ => bail!("{}: {} returns nothing", e.span, function.name),
                     };
                 }
                 let mut values = Vec::new();
                 for (field, value) in fields {
+                    // A field the Details panel alone sets has no pin on the editor's Make node, so
+                    // code can only give it a value in a variable's default.
                     let Some(ty) = self.db().field(&path, field) else {
                         bail!("{}: {name} has no field {field} that Blueprints can set", value.span);
                     };
                     if self.db().field_read_only(&path, field) {
                         bail!("{}: {name}'s {field} is read-only, so Blueprints can read it but not make a {name} with it", value.span);
+                    }
+                    // A Make node's pin holds a whole literal, and one left unset keeps the
+                    // struct's own default, so a container field written as an empty `[]` is that
+                    // pin left alone, as `S(X: [])` has always been. `arg` refuses one anywhere a
+                    // node needs a wire: a local, a field being set, an argument and a return.
+                    if matches!(value.kind, ExprKind::EmptyArray) && is_container(&ty) {
+                        values.push((field.clone(), Source::Nothing));
+                        continue;
                     }
                     let v = self.arg(value, &ty)?;
                     self.check(&v, &ty, value.span, field)?;
@@ -3494,6 +3764,10 @@ impl<'a> Graph<'a> {
             },
             ExprKind::Unary(op, operand) => {
                 let value = self.expr(operand)?;
+                // A structure the engine negates with a function of its own, as NegateVector does.
+                if let Some(unary) = builtins::struct_unary(*op, &value.ty) {
+                    return self.pure_library(unary.class, unary.function, vec![("A", value.clone())], value.ty);
+                }
                 let Some(unary) = builtins::unary(*op, &value.ty) else {
                     match op {
                         UnaryOp::Not => bail!("{}: ! needs a bool, not {}", e.span, value.ty),
@@ -3523,6 +3797,35 @@ impl<'a> Graph<'a> {
                     b = Value { source: Source::Literal(format!("{n}.0")), ty: Ty::Float };
                 } else if let (ExprKind::Int(n), Ty::Float) = (&left.kind, &b.ty) {
                     a = Value { source: Source::Literal(format!("{n}.0")), ty: Ty::Float };
+                } else if let (Ty::Int64, ExprKind::Int(n)) = (&a.ty, &right.kind) {
+                    // A whole number written out is an int64 beside one, as it is a float beside
+                    // a float.
+                    b = Value { source: Source::Literal(n.to_string()), ty: Ty::Int64 };
+                } else if let (ExprKind::Int(n), Ty::Int64) = (&left.kind, &b.ty) {
+                    a = Value { source: Source::Literal(n.to_string()), ty: Ty::Int64 };
+                }
+                // A structure has the operators its own table gives it, such as Vector's `+` and
+                // `*`, which are functions of the engine rather than the editor's own nodes.
+                let mut structure = builtins::struct_operator(*op, &a.ty, &b.ty);
+                if structure.is_none() {
+                    // A whole number written out stands for a float beside a structure that takes
+                    // one: `reach * 2` is `reach * 2.0`.
+                    if let (Ty::Struct(_), ExprKind::Int(n)) = (&a.ty, &right.kind) {
+                        b = Value { source: Source::Literal(format!("{n}.0")), ty: Ty::Float };
+                    } else if let (ExprKind::Int(n), Ty::Struct(_)) = (&left.kind, &b.ty) {
+                        a = Value { source: Source::Literal(format!("{n}.0")), ty: Ty::Float };
+                    }
+                    structure = builtins::struct_operator(*op, &a.ty, &b.ty);
+                }
+                if let Some((record, swapped)) = structure {
+                    let ret = match record.returns {
+                        builtins::StructResult::Same => Ty::Struct(record.on.to_string()),
+                        builtins::StructResult::Kind(kind) => kind.ty().expect("an operator of a structure gives a whole type"),
+                    };
+                    // The sides are given in the order the function takes them: `2.0 * Reach`
+                    // calls Multiply_VectorFloat(Reach, 2.0).
+                    let (first, second) = if swapped { (b, a) } else { (a, b) };
+                    return self.pure_library(record.class, record.function, vec![("A", first), ("B", second)], ret);
                 }
                 // An interface's value compares as the object it is.
                 let a = self.as_object(a)?;
@@ -3535,6 +3838,48 @@ impl<'a> Graph<'a> {
                 }
                 // Two objects compare whatever their classes, and either may be none.
                 let object = |t: &Ty| matches!(t, Ty::Object(_) | Ty::Null);
+                // A class or a soft reference compared with none asks whether it is set at all,
+                // which the engine's own validity function answers.
+                let valueless = if matches!(op, BinaryOp::Eq | BinaryOp::Ne) {
+                    match (&a.ty, &b.ty) {
+                        (Ty::Class(_), Ty::Null) => Some((a.clone(), "IsValidClass")),
+                        (Ty::SoftObject(_), Ty::Null) => Some((a.clone(), "IsValidSoftObjectReference")),
+                        (Ty::SoftClass(_), Ty::Null) => Some((a.clone(), "IsValidSoftClassReference")),
+                        (Ty::Null, Ty::Class(_)) => Some((b.clone(), "IsValidClass")),
+                        (Ty::Null, Ty::SoftObject(_)) => Some((b.clone(), "IsValidSoftObjectReference")),
+                        (Ty::Null, Ty::SoftClass(_)) => Some((b.clone(), "IsValidSoftClassReference")),
+                        _ => None,
+                    }
+                } else {
+                    None
+                };
+                if let Some((value, invalid)) = valueless {
+                    let param = match invalid {
+                        "IsValidClass" => "Class",
+                        "IsValidSoftObjectReference" => "SoftObjectReference",
+                        _ => "SoftClassReference",
+                    };
+                    let set = self.pure_library(SYSTEM, invalid, vec![(param, value)], Ty::Bool)?;
+                    // `!= none` is whether it is set, and `== none` the other way round.
+                    return if *op == BinaryOp::Ne {
+                        Ok(set)
+                    } else {
+                        self.pure_library(MATH, "Not_PreBool", vec![("A", set)], Ty::Bool)
+                    };
+                }
+                // A structure takes only the operators its own table gives it, so an error names
+                // them rather than saying there is no such operator at all.
+                let structure = match (&a.ty, &b.ty) {
+                    (Ty::Struct(path), _) | (_, Ty::Struct(path)) => Some(path.as_str()),
+                    _ => None,
+                };
+                if let Some(path) = structure {
+                    let operators = builtins::struct_operators_of(path);
+                    if operators.is_empty() {
+                        bail!("{}: {} is not defined for {}: {} has no operators of its own, so use its functions", e.span, op.symbol(), a.ty, short(path));
+                    }
+                    bail!("{}: {} is not defined between {} and {}; {} has {}", e.span, op.symbol(), a.ty, b.ty, short(path), listed(&operators));
+                }
                 let on = if object(&a.ty) && object(&b.ty) {
                     if a.ty == Ty::Null && b.ty == Ty::Null {
                         bail!("{}: comparing none with none always gives the same answer", e.span);
@@ -3571,6 +3916,11 @@ impl<'a> Graph<'a> {
             if let Some((class, function)) = self.db().native_break(path) {
                 // Such a struct is broken by its function, which has an output per field.
                 let function = self.program.library(&class, &function)?;
+                if !function.outputs.iter().any(|(name, _)| name == field) {
+                    // The struct's fields are the engine's names; what Blueprint has is the
+                    // function's outputs, which are not always named the same.
+                    bail!("{span}: {} has no field {field} that Blueprints read: {}", short(path), read_through(short(path), &function));
+                }
                 let Some((_, Some(record))) = self.call_values(&function, None, vec![object.clone()]).ok() else {
                     bail!("{span}: {} returns nothing", function.name);
                 };
@@ -3648,7 +3998,13 @@ impl<'a> Graph<'a> {
             None if self.program.functions.contains_key(name) || self.db().has_function(&self.program.parent, name) => {
                 bail!("{span}: {name} is a function; call it, {name}(), or pass it where a delegate is expected")
             }
-            None => bail!("{span}: no variable {name}"),
+            None => {
+                // Read as a value, a name the language gives is nothing to find as a type either.
+                if builtins::function(name).is_some() || builtins::plain_type(name).is_some() {
+                    self.db().not_a_type(name);
+                }
+                bail!("{span}: no variable {name}")
+            }
         }
     }
 }
@@ -4499,6 +4855,355 @@ pub(crate) mod tests {
         compile_together(&[TOOL, CELL, &src]).unwrap();
         let err = compile_together(&[TOOL, CELL, &format!("{HEADER}fn F(c: S_Cell) -> int {{\n return c.Z\n}}\n")]).unwrap_err();
         assert!(err.to_string().contains("Z"), "{err}");
+    }
+
+    /// The engine's own types, as a source that names Vector, Rotator, Transform or Key needs them.
+    fn engine() -> TypeDb {
+        TypeDb::parse(crate::fixtures::engine()).unwrap()
+    }
+
+    /// The default a pin of a node holds, as ops.json writes it.
+    fn default_on(doc: &Document, node: &str, pin_name: &str) -> Option<String> {
+        doc.ops.iter().find_map(|op| match op {
+            Op::Default { pin, value } if pin.node == node && pin.pin == pin_name => Some(value.clone()),
+            _ => None,
+        })
+    }
+
+    /// The node of a document that calls a function, by `<class>:<name>`.
+    fn call_of(doc: &Document, function: &str) -> Option<String> {
+        doc.ops.iter().find_map(|op| match op {
+            Op::Node { id, kind: NodeKind::Call { function: called }, .. } if called == function => Some(id.clone()),
+            _ => None,
+        })
+    }
+
+    const MAKE_VECTOR2D: &str = "/Script/Engine.KismetMathLibrary:MakeVector2D";
+    const MAKE_ROTATOR: &str = "/Script/Engine.KismetMathLibrary:MakeRotator";
+    const MAKE_TRANSFORM: &str = "/Script/Engine.KismetMathLibrary:MakeTransform";
+
+    #[test]
+    fn a_make_function_gives_a_field_left_out_its_zero() {
+        let doc = compile(&format!("{HEADER}fn F() -> Vector2D {{\n return Vector2D(X: 1.0)\n}}\n")).unwrap();
+        let make = call_of(&doc, MAKE_VECTOR2D).expect("MakeVector2D");
+        assert_eq!(default_on(&doc, &make, "X").as_deref(), Some("1"), "the field written out is taken as written");
+        assert_eq!(default_on(&doc, &make, "Y").as_deref(), Some("0.0"), "a field left out is its type's zero");
+        // Nothing written at all makes every field a zero.
+        let doc = compile(&format!("{HEADER}fn F() -> Vector2D {{\n return Vector2D()\n}}\n")).unwrap();
+        let make = call_of(&doc, MAKE_VECTOR2D).expect("MakeVector2D");
+        assert_eq!(default_on(&doc, &make, "X").as_deref(), Some("0.0"));
+        assert_eq!(default_on(&doc, &make, "Y").as_deref(), Some("0.0"));
+        // A struct field of a struct type is at its zero too, which is a make of its own.
+        let db = engine();
+        let doc = lower(&parse(&format!("{HEADER}var M: Vector2D\nfn F() -> Box2D {{\n return Box2D(Max: M)\n}}\n")).unwrap(), "test.lm", &db).unwrap();
+        assert!(call_of(&doc, "/Script/Engine.KismetMathLibrary:MakeBox2D").is_some(), "MakeBox2D");
+        assert_eq!(doc.ops.iter().filter(|op| matches!(op, Op::Node { kind: NodeKind::Call { function }, .. } if function == MAKE_VECTOR2D)).count(), 1, "Min is made at its zero");
+    }
+
+    #[test]
+    fn a_make_function_refuses_a_field_it_does_not_take() {
+        let err = compile(&format!("{HEADER}fn F() -> Vector2D {{\n return Vector2D(Z: 1.0)\n}}\n")).unwrap_err().to_string();
+        assert!(err.contains("Vector2D has no field Z"), "{err}");
+        assert!(err.contains("Vector2D's fields are built by MakeVector2D, which takes X (float) and Y (float)"), "{err}");
+    }
+
+    #[test]
+    fn a_make_function_leaves_a_field_it_defaults_at_that_default() {
+        let db = engine();
+        let source = |body: &str| format!("blueprint B : Actor at /Game/B\nvar L: Vector\nvar R: Rotator\nfn F() -> Transform {{\n {body}\n}}\n");
+        // Rotation has no default and is made at its zero; Scale is one MakeTransform itself
+        // defaults, so its pin is left as the node has it, which is not a zero.
+        let doc = lower(&parse(&source("return Transform(Location: L)")).unwrap(), "test.lm", &db).unwrap();
+        let make = call_of(&doc, MAKE_TRANSFORM).expect("MakeTransform");
+        assert!(call_of(&doc, MAKE_ROTATOR).is_some(), "Rotation is made at its zero");
+        assert_eq!(default_on(&doc, &make, "Scale"), None, "Scale keeps the node's own default");
+        // Every field written out is taken as written.
+        lower(&parse(&source("return Transform(Location: L, Rotation: R, Scale: L)")).unwrap(), "test.lm", &db).unwrap();
+        // A field MakeTransform has no parameter for is refused with the ones it takes.
+        let err = lower(&parse(&source("return Transform(Translation: L)")).unwrap(), "test.lm", &db).unwrap_err().to_string();
+        assert!(err.contains("Transform's fields are built by MakeTransform, which takes Location (Vector), Rotation (Rotator) and Scale (Vector)"), "{err}");
+    }
+
+    #[test]
+    fn a_structs_fields_are_read_through_its_break_function() {
+        let db = engine();
+        let source = |body: &str| format!("blueprint B : Actor at /Game/B\nvar T: Transform\nfn F() -> float {{\n {body}\n}}\n");
+        // Blueprint reads a Transform's parts by the names BreakTransform gives them, not by the
+        // names the type's own fields have.
+        lower(&parse(&source("return T.Location.X")).unwrap(), "test.lm", &db).unwrap();
+        let err = lower(&parse(&source("return T.Translation.X")).unwrap(), "test.lm", &db).unwrap_err().to_string();
+        assert!(
+            err.contains("Transform's fields are read through BreakTransform, whose outputs are Location (Vector), Rotation (Rotator) and Scale (Vector): write BreakTransform(value).Location"),
+            "{err}"
+        );
+        // A struct with no break function of its own is read by its fields, as Box is.
+        let boxes = "blueprint B : Actor at /Game/B\nvar Hit: Box\nvar Zone: Box2D\nfn F() -> bool {\n return Hit.IsValid && Zone.bIsValid\n}\n";
+        lower(&parse(boxes).unwrap(), "test.lm", &db).unwrap();
+    }
+
+    #[test]
+    fn a_structure_has_the_operators_its_own_table_gives_it() {
+        let db = engine();
+        let source = |body: &str| format!("blueprint B : Actor at /Game/B\nvar Where: Vector\nvar Fwd: Vector\nvar Reach: float\nvar Facing: Rotator\nfn F() -> {body}\n");
+        let json = |body: &str| lower(&parse(&source(body)).unwrap(), "test.lm", &db).unwrap().to_json();
+        // A vector with a vector, a vector with a float, and either way round where they trade.
+        let added = json("Vector {\n return Where + Fwd\n}");
+        assert!(added.contains("KismetMathLibrary:Add_VectorVector"), "{added}");
+        let scaled = json("Vector {\n return Fwd * Reach\n}");
+        assert!(scaled.contains("KismetMathLibrary:Multiply_VectorFloat"), "{scaled}");
+        let scaled = json("Vector {\n return 2.0 * Fwd\n}");
+        assert!(scaled.contains("KismetMathLibrary:Multiply_VectorFloat"), "{scaled}");
+        // The structure is the call's A whichever side it was written on.
+        let doc = lower(&parse(&source("Vector {\n return 2.0 * Fwd\n}")).unwrap(), "test.lm", &db).unwrap();
+        let call = call_of(&doc, "/Script/Engine.KismetMathLibrary:Multiply_VectorFloat").expect("Multiply_VectorFloat");
+        assert_eq!(links_into(&doc, &call, "A").len(), 1, "the vector is the call's A");
+        assert_eq!(default_on(&doc, &call, "B").as_deref(), Some("2"), "the float is the call's B");
+        let scaled = json("Vector {\n return Reach * Fwd\n}");
+        assert!(scaled.contains("KismetMathLibrary:Multiply_VectorFloat"), "{scaled}");
+        // A whole number written out is a float beside a vector.
+        let whole = json("Vector {\n return Fwd * 2\n}");
+        assert!(whole.contains("KismetMathLibrary:Multiply_VectorFloat"), "{whole}");
+        assert!(whole.contains(r#""value":"2.0""#), "{whole}");
+        // A rotation takes a float, and comparisons come from the same table.
+        let turned = json("Rotator {\n return Facing * 1.5\n}");
+        assert!(turned.contains("KismetMathLibrary:Multiply_RotatorFloat"), "{turned}");
+        let compared = json("bool {\n return Where == Fwd\n}");
+        assert!(compared.contains("KismetMathLibrary:EqualEqual_VectorVector"), "{compared}");
+        let compared = json("bool {\n return Where != Fwd\n}");
+        assert!(compared.contains("KismetMathLibrary:NotEqual_VectorVector"), "{compared}");
+        // A vector is negated by its own function.
+        let negated = json("Vector {\n return -Where\n}");
+        assert!(negated.contains("KismetMathLibrary:NegateVector"), "{negated}");
+        // The addition is given its sides in order, and multiplication its structure first.
+        let mixed = json("Vector {\n return Where + Fwd * Reach\n}");
+        assert!(mixed.contains("KismetMathLibrary:Add_VectorVector"), "{mixed}");
+    }
+
+    #[test]
+    fn an_operator_a_structure_has_not_is_refused_with_the_ones_it_has() {
+        let db = engine();
+        let source = |body: &str| format!("blueprint B : Actor at /Game/B\nvar Where: Vector\nfn F() -> Vector {{\n {body}\n}}\n");
+        // The engine has no Subtract_VectorFloat, so `v - 2.0` is not one of a vector's operators,
+        // and the error lists the ones it does have.
+        let err = lower(&parse(&source("return Where - 2.0")).unwrap(), "test.lm", &db).unwrap_err().to_string();
+        assert!(err.contains("Vector has A + B, A - B, A * B, A / B, A + float, A * float, A / float, A == B and A != B"), "{err}");
+        // A structure with none of its own says so.
+        let boxy = "blueprint B : Actor at /Game/B\nvar Hit: Box\nfn F() -> Box {\n return Hit + Hit\n}\n";
+        let err = lower(&parse(boxy).unwrap(), "test.lm", &db).unwrap_err().to_string();
+        assert!(err.contains("Box has no operators of its own"), "{err}");
+    }
+
+    #[test]
+    fn a_whole_number_is_an_int64_beside_one() {
+        let db = engine();
+        let src = format!("{HEADER}var X: int64 = 5\nfn F() -> int64 {{\n return X * 2 + X\n}}\n");
+        let doc = lower(&parse(&src).unwrap(), "test.lm", &db).unwrap();
+        assert!(doc.to_json().contains("Multiply_Int64Int64"), "{}", doc.to_json());
+    }
+
+    #[test]
+    fn a_class_or_a_soft_reference_is_compared_with_none() {
+        let src = format!(
+            "{HEADER}var Kind: class<Actor>\nvar Icon: soft<Actor>\nvar Spawns: soft<class<Actor>>\nfn F(other: class<Actor>) -> bool {{\n return Kind != none && other == none && Icon == none && Icon != none && Spawns != none\n}}\n"
+        );
+        let doc = compile(&src).unwrap();
+        let json = doc.to_json();
+        assert!(json.contains("IsValidClass"), "{json}");
+        assert!(json.contains("IsValidSoftObjectReference"), "{json}");
+        assert!(json.contains("IsValidSoftClassReference"), "{json}");
+        // `== none` is the validity check negated, and `!= none` is the check itself.
+        assert!(json.contains("Not_PreBool"), "{json}");
+        // Still nothing to compare a class with but none.
+        let err = compile(&format!("{HEADER}var Kind: class<Actor>\nfn F() -> bool {{\n return Kind < none\n}}\n")).unwrap_err();
+        assert!(err.to_string().contains("mixes types"), "{err}");
+    }
+
+    #[test]
+    fn an_empty_container_literal_is_refused_where_nothing_can_be_wired() {
+        // A variable holds an empty array in place, which is a Clear on it, and so does a local.
+        compile(&format!("{HEADER}var Items: array<int>\nfn F() {{\n Items = []\n let more: array<int> = []\n}}\n")).unwrap();
+        // A local set or map is a pin on a Set node, which must be wired, and there is no node
+        // that makes an empty one.
+        let set = compile(&format!("{HEADER}fn F() {{\n let seen: set<int> = []\n}}\n")).unwrap_err().to_string();
+        assert!(set.contains("a set's empty [] is not something Blueprint can make"), "{set}");
+        assert!(set.contains("Clear()"), "{set}");
+        let map = compile(&format!("{HEADER}fn Take(stock: map<string, int>) {{\n}}\nfn F() {{\n Take(none)\n}}\n")).unwrap_err().to_string();
+        assert!(map.contains("a map cannot be none"), "{map}");
+        // A field of a struct is a pin on a Set Members node too.
+        let grid = "struct S_Grid at /Game/Types/S_Grid {\n    Cells: set<int>\n}\n";
+        let field = format!("{HEADER}var G: S_Grid\nfn F() {{\n G.Cells = []\n}}\n");
+        let err = compile_together(&[grid, &field]).unwrap_err().to_string();
+        assert!(err.contains("a set's empty [] is not something Blueprint can make"), "{err}");
+        // And so is a parameter of a call.
+        let called = format!("{HEADER}fn Take(items: array<int>) {{\n}}\nfn F() {{\n Take([])\n}}\n");
+        let err = compile(&called).unwrap_err().to_string();
+        assert!(err.contains("an array's empty [] is not something Blueprint can make"), "{err}");
+    }
+
+    #[test]
+    fn a_built_ins_name_is_not_a_type_the_types_are_missing() {
+        // `cast`, `float` and `string` are looked up as classes and enums before they are lowered
+        // as the language's own functions, and a lookup by one must not leave it in `missing`,
+        // which is the list of types the project would load and save.
+        let mut db = db();
+        let src = format!("{HEADER}fn F(thing: Object, n: int) -> string {{\n let a = cast(thing, Actor)\n return string(float(n)) + \"\"\n}}\n");
+        let file = parse_source(&src).unwrap();
+        declare(&[file.clone()], &mut db).unwrap();
+        lower_source(&file, "test.lm", &db).unwrap();
+        let missing = db.missing();
+        for name in ["cast", "float", "string", "Actor"] {
+            assert!(!missing.contains(&name.to_string()), "{name} is in {missing:?}");
+        }
+    }
+
+    #[test]
+    fn a_ref_parameters_struct_field_is_set_in_place() {
+        // A struct the engine makes with a function of its own has no field to set, but the
+        // parameter is the caller's own value, which Set Members writes through its pin.
+        let doc = compile(&format!("{HEADER}fn Move(by: ref Vector2D) {{\n by.X = 1.0\n}}\n")).unwrap();
+        let node = doc
+            .ops
+            .iter()
+            .find_map(|op| match op {
+                Op::Node { id, kind: NodeKind::SetFields { fields, .. }, .. } if fields == &["X".to_string()] => Some(id.clone()),
+                _ => None,
+            })
+            .expect("a Set Members node");
+        assert_eq!(links_into(&doc, &node, "StructRef"), vec!["Move/entry.by"], "the parameter's own pin");
+        assert_eq!(default_on(&doc, &node, "X").as_deref(), Some("1"));
+        // A struct the Blueprint declares is set in place the same way.
+        let src = format!("{HEADER}fn Bump(c: ref S_Cell) {{\n c.Y = 3\n}}\n");
+        let doc = compile_together(&[TOOL, CELL, &src]).unwrap();
+        assert!(doc[2].contains(r#""fields":["Y"]"#), "{}", doc[2]);
+        // A by-value parameter is a copy only this function sees, so it is still refused.
+        let err = compile(&format!("{HEADER}fn Move(by: Vector2D) {{\n by.X = 1.0\n}}\n")).unwrap_err().to_string();
+        assert!(err.contains("is a parameter and cannot be assigned"), "{err}");
+    }
+
+    #[test]
+    fn format_fills_the_engines_argument_array_and_calls_it() {
+        let db = engine();
+        let src = format!(
+            "{HEADER}var N: int\nvar S: string\nfn F() -> text {{\n return format(\"{{0}} / {{1}} / {{2}}\", N, S, 1.5)\n}}\n"
+        );
+        let doc = lower(&parse(&src).unwrap(), "test.lm", &db).unwrap();
+        let made: Vec<String> = doc
+            .ops
+            .iter()
+            .filter_map(|op| match op {
+                Op::Node { id, kind: NodeKind::Make { r#struct }, .. } if r#struct == FORMAT_ARGUMENT => Some(id.clone()),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(made.len(), 3, "one FormatArgumentData per value");
+        let names: Vec<String> = made.iter().map(|id| default_on(&doc, id, "ArgumentName").unwrap_or_default()).collect();
+        assert_eq!(names, ["{0}", "{1}", "{2}"], "each value names its place in the pattern");
+        let kinds: Vec<String> = made.iter().map(|id| default_on(&doc, id, "ArgumentValueType").unwrap_or_default()).collect();
+        assert_eq!(kinds, ["Int", "Text", "Double"]);
+        // Each value goes in the field of its own kind: the int as an int64, the string as text.
+        assert_eq!(links_into(&doc, &made[0], "ArgumentValueInt").len(), 1);
+        assert_eq!(links_into(&doc, &made[1], "ArgumentValue").len(), 1);
+        assert_eq!(default_on(&doc, &made[2], "ArgumentValueDouble").as_deref(), Some("1.5"));
+        let adds = doc
+            .ops
+            .iter()
+            .filter(|op| matches!(op, Op::Node { kind: NodeKind::Call { function }, .. } if function == "/Script/Engine.KismetArrayLibrary:Array_Add"))
+            .count();
+        assert_eq!(adds, 3, "each value is added to the arguments' array");
+        let clears = doc
+            .ops
+            .iter()
+            .filter(|op| matches!(op, Op::Node { kind: NodeKind::Call { function }, .. } if function == "/Script/Engine.KismetArrayLibrary:Array_Clear"))
+            .count();
+        assert_eq!(clears, 1, "the array is emptied first, so a second pass does not keep the first's values");
+        let format = call_of(&doc, "/Script/Engine.KismetTextLibrary:Format").expect("Format");
+        assert_eq!(links_into(&doc, &format, "InArgs").len(), 1);
+        assert_eq!(links_into(&doc, &format, "InPattern").len(), 1);
+        // A bool, a name and an int64 go in as text, text and a whole number.
+        let other = format!("{HEADER}var B: bool\nvar T: name\nvar X: int64\nfn G() -> text {{\n return format(\"{{0}}{{1}}{{2}}\", B, T, X)\n}}\n");
+        let doc = lower(&parse(&other).unwrap(), "test.lm", &db).unwrap();
+        let kinds: Vec<String> = doc
+            .ops
+            .iter()
+            .filter_map(|op| match op {
+                Op::Node { id, kind: NodeKind::Make { r#struct }, .. } if r#struct == FORMAT_ARGUMENT => Some(id.clone()),
+                _ => None,
+            })
+            .map(|id| default_on(&doc, &id, "ArgumentValueType").unwrap_or_default())
+            .collect();
+        assert_eq!(kinds, ["Text", "Text", "Int"]);
+    }
+
+    #[test]
+    fn format_refuses_a_pattern_that_is_not_text_and_no_value_at_all() {
+        let db = engine();
+        let wrong = |body: &str| {
+            let src = format!("{HEADER}var N: int\nvar Items: array<int>\nfn F() -> text {{\n return {body}\n}}\n");
+            lower(&parse(&src).unwrap(), "test.lm", &db).unwrap_err().to_string()
+        };
+        assert!(wrong("format()").contains("takes a text pattern and the values"), "{}", wrong("format()"));
+        assert!(wrong("format(\"{0}\")").contains("at least one value"), "{}", wrong("format(\"{0}\")"));
+        assert!(wrong("format(N, N)").contains("takes a text pattern first"), "{}", wrong("format(N, N)"));
+        assert!(wrong("format(\"{0}\", Items)").contains("cannot show"), "{}", wrong("format(\"{0}\", Items)"));
+    }
+
+    #[test]
+    fn an_empty_container_field_of_a_struct_made_in_code_is_a_pin_left_alone() {
+        // A struct made in code is a Make node, whose pins hold whole literals: an empty `[]` is
+        // the pin left at the struct's own default, which is how a Mod has always written it.
+        let grid = "struct S_Grid at /Game/Types/S_Grid {\n    Steps: array<int>\n    Cells: set<int>\n    Names: map<name, int>\n}\n";
+        let source = |field: &str| format!("{HEADER}var G: S_Grid\nfn F() {{\n let g = S_Grid({field}: [])\n}}\n");
+        let made = compile_together(&[grid, &source("Steps")]).unwrap();
+        assert!(made[1].contains(r#""kind":"make","struct":"/Game/Types/S_Grid.S_Grid""#), "{}", made[1]);
+        // Nothing is fed to any pin: each keeps the struct's own default, the empty array here.
+        assert!(!made[1].contains(r#""op":"default""#), "{}", made[1]);
+        assert!(!made[1].contains(r#"to":"F/make1.Steps""#), "nothing is fed to the Steps pin: {}", made[1]);
+        // A set or a map field is the same node, so its pin is left alone too.
+        compile_together(&[grid, &source("Cells")]).unwrap();
+        compile_together(&[grid, &source("Names")]).unwrap();
+        // Everywhere a node needs a wire, an empty container is still refused: a local set or map,
+        // a field being set, an argument of a call and a return.
+        let local = compile(&format!("{HEADER}fn F() {{\n let seen: set<int> = []\n}}\n")).unwrap_err().to_string();
+        assert!(local.contains("is not something Blueprint can make"), "{local}");
+        let field = format!("{HEADER}var G: S_Grid\nfn F() {{\n G.Cells = []\n}}\n");
+        let err = compile_together(&[grid, &field]).unwrap_err().to_string();
+        assert!(err.contains("a set's empty [] is not something Blueprint can make"), "{err}");
+    }
+
+    #[test]
+    fn a_key_is_written_by_its_name_in_an_expression() {
+        let db = engine();
+        let doc = lower(&parse("blueprint B : Actor at /Game/B\nfn F() -> Key {\n return Key(KeyName: \"Left\")\n}\n").unwrap(), "test.lm", &db).unwrap();
+        let result = doc
+            .ops
+            .iter()
+            .find_map(|op| match op {
+                Op::Node { id, kind: NodeKind::Result, .. } => Some(id.clone()),
+                _ => None,
+            })
+            .expect("a result node");
+        assert_eq!(default_on(&doc, &result, "ReturnValue").as_deref(), Some("Left"));
+        // KeyName is set in the Details panel alone, so only its name can be written.
+        let err = lower(&parse("blueprint B : Actor at /Game/B\nfn F() -> Key {\n return Key(KeyName: 1)\n}\n").unwrap(), "test.lm", &db).unwrap_err().to_string();
+        assert!(err.contains("Key has no field KeyName"), "{err}");
+    }
+
+    #[test]
+    fn a_key_default_is_written_by_its_name_too() {
+        let db = engine();
+        let doc = lower(
+            &parse("blueprint B : Actor at /Game/B\nvar CloseKey: Key = Key(KeyName: \"Escape\")\n\nfn F() {\n}\n").unwrap(),
+            "test.lm",
+            &db,
+        )
+        .unwrap();
+        // `(KeyName="Escape")` is read back as the single character `(`, so the default must be the
+        // key's own name, as it is in an expression and as the engine's ExportText writes it.
+        let default = doc.ops.iter().find_map(|op| match op {
+            Op::Variable { name, default, .. } if name == "CloseKey" => Some(default.clone()),
+            _ => None,
+        });
+        assert_eq!(default.flatten().as_deref(), Some("Escape"));
     }
 
     #[test]

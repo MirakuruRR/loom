@@ -103,6 +103,18 @@ fn F() -> text {
 }
 ```
 
+### format
+
+`format(pattern, value, ...) -> text`
+
+The `text` pattern with each `{0}`, `{1}` and so on replaced by the value of that place, as the engine's own Format does. The pattern comes first, then one value per place: text and strings go in as they are, numbers as numbers, and anything else that can be shown as text is converted.
+
+```loom
+fn F() -> text {
+    return format("{0} of {1}", Lives, float(Lives))
+}
+```
+
 ### cast
 
 `cast(value, Class or Interface) -> Class or Interface`
@@ -345,13 +357,14 @@ From loosest to tightest. Parentheses group as usual.
 
 `+=`, `-=` and the other compound assignments aren't on this list: each is a statement that applies an operator and assigns the result. See [Compound assignment](/reference/statements/#compound-assignment).
 
-Both sides of an operator have the same type, and what each operator takes is below. `&&` and `||` compute both sides, so neither may contain a call that does something.
+Both sides of an operator are the same type, but where the table says two, as `Vector` and `float` for `Reach * 2.0`: a structure's operators are the engine's own functions, and a structure is not one of the plain kinds. The table says what each operator takes. `&&` and `||` compute both sides, so neither may contain a call that does something.
 
 | Operator | Takes | Gives | Calls |
 | --- | --- | --- | --- |
 | `\|\|` | `bool` | `bool` | `KismetMathLibrary.BooleanOR` |
 | `&&` | `bool` | `bool` | `KismetMathLibrary.BooleanAND` |
 | `==` | `int` | `bool` | `KismetMathLibrary.EqualEqual_IntInt` |
+| `==` | `int64` | `bool` | `KismetMathLibrary.EqualEqual_Int64Int64` |
 | `==` | `float` | `bool` | `KismetMathLibrary.EqualEqual_DoubleDouble` |
 | `==` | `bool` | `bool` | `KismetMathLibrary.EqualEqual_BoolBool` |
 | `==` | `string` | `bool` | `KismetStringLibrary.EqualEqual_StrStr` |
@@ -359,7 +372,11 @@ Both sides of an operator have the same type, and what each operator takes is be
 | `==` | a byte | `bool` | `KismetMathLibrary.EqualEqual_ByteByte` |
 | `==` | an object | `bool` | `KismetMathLibrary.EqualEqual_ObjectObject` |
 | `==` | an enum | `bool` | the editor's enum equality node |
+| `==` | `Vector` and `Vector` | `bool` | `KismetMathLibrary.EqualEqual_VectorVector` |
+| `==` | `Vector2D` and `Vector2D` | `bool` | `KismetMathLibrary.EqualEqual_Vector2DVector2D` |
+| `==` | `Rotator` and `Rotator` | `bool` | `KismetMathLibrary.EqualEqual_RotatorRotator` |
 | `!=` | `int` | `bool` | `KismetMathLibrary.NotEqual_IntInt` |
+| `!=` | `int64` | `bool` | `KismetMathLibrary.NotEqual_Int64Int64` |
 | `!=` | `float` | `bool` | `KismetMathLibrary.NotEqual_DoubleDouble` |
 | `!=` | `bool` | `bool` | `KismetMathLibrary.NotEqual_BoolBool` |
 | `!=` | `string` | `bool` | `KismetStringLibrary.NotEqual_StrStr` |
@@ -367,30 +384,62 @@ Both sides of an operator have the same type, and what each operator takes is be
 | `!=` | a byte | `bool` | `KismetMathLibrary.NotEqual_ByteByte` |
 | `!=` | an object | `bool` | `KismetMathLibrary.NotEqual_ObjectObject` |
 | `!=` | an enum | `bool` | the editor's enum equality node |
+| `!=` | `Vector` and `Vector` | `bool` | `KismetMathLibrary.NotEqual_VectorVector` |
+| `!=` | `Vector2D` and `Vector2D` | `bool` | `KismetMathLibrary.NotEqual_Vector2DVector2D` |
+| `!=` | `Rotator` and `Rotator` | `bool` | `KismetMathLibrary.NotEqual_RotatorRotator` |
 | `<` | `int` | `bool` | `KismetMathLibrary.Less_IntInt` |
+| `<` | `int64` | `bool` | `KismetMathLibrary.Less_Int64Int64` |
 | `<` | `float` | `bool` | `KismetMathLibrary.Less_DoubleDouble` |
 | `<=` | `int` | `bool` | `KismetMathLibrary.LessEqual_IntInt` |
+| `<=` | `int64` | `bool` | `KismetMathLibrary.LessEqual_Int64Int64` |
 | `<=` | `float` | `bool` | `KismetMathLibrary.LessEqual_DoubleDouble` |
 | `>` | `int` | `bool` | `KismetMathLibrary.Greater_IntInt` |
+| `>` | `int64` | `bool` | `KismetMathLibrary.Greater_Int64Int64` |
 | `>` | `float` | `bool` | `KismetMathLibrary.Greater_DoubleDouble` |
 | `>=` | `int` | `bool` | `KismetMathLibrary.GreaterEqual_IntInt` |
+| `>=` | `int64` | `bool` | `KismetMathLibrary.GreaterEqual_Int64Int64` |
 | `>=` | `float` | `bool` | `KismetMathLibrary.GreaterEqual_DoubleDouble` |
 | `\|` | `int` | `int` | `KismetMathLibrary.Or_IntInt` |
+| `\|` | `int64` | `int64` | `KismetMathLibrary.Or_Int64Int64` |
 | `&` | `int` | `int` | `KismetMathLibrary.And_IntInt` |
+| `&` | `int64` | `int64` | `KismetMathLibrary.And_Int64Int64` |
 | `+` | `int` | `int` | `KismetMathLibrary.Add_IntInt` |
+| `+` | `int64` | `int64` | `KismetMathLibrary.Add_Int64Int64` |
 | `+` | `float` | `float` | `KismetMathLibrary.Add_DoubleDouble` |
 | `+` | `string` | `string` | `KismetStringLibrary.Concat_StrStr` |
+| `+` | `Vector` and `Vector` | `Vector` | `KismetMathLibrary.Add_VectorVector` |
+| `+` | `Vector` and `float` | `Vector` | `KismetMathLibrary.Add_VectorFloat` |
+| `+` | `Vector2D` and `Vector2D` | `Vector2D` | `KismetMathLibrary.Add_Vector2DVector2D` |
+| `+` | `Vector2D` and `float` | `Vector2D` | `KismetMathLibrary.Add_Vector2DFloat` |
 | `-` | `int` | `int` | `KismetMathLibrary.Subtract_IntInt` |
+| `-` | `int64` | `int64` | `KismetMathLibrary.Subtract_Int64Int64` |
 | `-` | `float` | `float` | `KismetMathLibrary.Subtract_DoubleDouble` |
+| `-` | `Vector` and `Vector` | `Vector` | `KismetMathLibrary.Subtract_VectorVector` |
+| `-` | `Vector2D` and `Vector2D` | `Vector2D` | `KismetMathLibrary.Subtract_Vector2DVector2D` |
 | `*` | `int` | `int` | `KismetMathLibrary.Multiply_IntInt` |
+| `*` | `int64` | `int64` | `KismetMathLibrary.Multiply_Int64Int64` |
 | `*` | `float` | `float` | `KismetMathLibrary.Multiply_DoubleDouble` |
+| `*` | `Vector` and `Vector` | `Vector` | `KismetMathLibrary.Multiply_VectorVector` |
+| `*` | `Vector` and `float` | `Vector` | `KismetMathLibrary.Multiply_VectorFloat` |
+| `*` | `Vector2D` and `Vector2D` | `Vector2D` | `KismetMathLibrary.Multiply_Vector2DVector2D` |
+| `*` | `Vector2D` and `float` | `Vector2D` | `KismetMathLibrary.Multiply_Vector2DFloat` |
+| `*` | `Rotator` and `float` | `Rotator` | `KismetMathLibrary.Multiply_RotatorFloat` |
 | `/` | `int` | `int` | `KismetMathLibrary.Divide_IntInt` |
+| `/` | `int64` | `int64` | `KismetMathLibrary.Divide_Int64Int64` |
 | `/` | `float` | `float` | `KismetMathLibrary.Divide_DoubleDouble` |
+| `/` | `Vector` and `Vector` | `Vector` | `KismetMathLibrary.Divide_VectorVector` |
+| `/` | `Vector` and `float` | `Vector` | `KismetMathLibrary.Divide_VectorFloat` |
+| `/` | `Vector2D` and `Vector2D` | `Vector2D` | `KismetMathLibrary.Divide_Vector2DVector2D` |
+| `/` | `Vector2D` and `float` | `Vector2D` | `KismetMathLibrary.Divide_Vector2DFloat` |
 | `%` | `int` | `int` | `KismetMathLibrary.Percent_IntInt` |
+| `%` | `int64` | `int64` | `KismetMathLibrary.Percent_Int64Int64` |
 | `%` | `float` | `float` | `KismetMathLibrary.Percent_FloatFloat` |
 | `-x` | `int` | `int` | `KismetMathLibrary.Subtract_IntInt`, as `0 - x` |
+| `-x` | `int64` | `int64` | `KismetMathLibrary.Subtract_Int64Int64`, as `0 - x` |
 | `-x` | `float` | `float` | `KismetMathLibrary.Subtract_DoubleDouble`, as `0 - x` |
 | `!x` | `bool` | `bool` | `KismetMathLibrary.Not_PreBool` |
+| `-x` | `Vector` | `Vector` | `KismetMathLibrary.NegateVector` |
+| `-x` | `Rotator` | `Rotator` | `KismetMathLibrary.NegateRotator` |
 
 ```loom
 fn Examples() {
@@ -398,5 +447,6 @@ fn Examples() {
     let doubled = Speed * 2.0
     let greeting = Title + "!"
     let aimed = Target != none
+    let wider = Seed + Seed
 }
 ```
